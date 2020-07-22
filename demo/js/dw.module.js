@@ -38,7 +38,13 @@ DW.Engine = (function () {
         Engine._initUI.bind(this)();
         Engine._initGUI.bind(this)();
 
-        window.addEventListener("resize", this.onWindowResize.bind(this), false);
+        window.addEventListener("resize", Engine.onWindowResize.bind(this), false);
+    }
+
+    Engine.onWindowResize = function () {
+        this.camera.aspect = window.innerWidth / window.innerHeight;
+        this.camera.updateProjectionMatrix();
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
     }
 
     Engine._initWorld = function () {
@@ -367,7 +373,7 @@ DW.Engine = (function () {
     };
 
     Engine.prototype.runRenderLoop = function (renderFunction) {
-        if (this._activeRenderLoops.indexOf(renderFunction) !== -1) { 
+        if (this._activeRenderLoops.indexOf(renderFunction) !== -1) {
             return;
         }
         if (renderFunction)
@@ -377,12 +383,6 @@ DW.Engine = (function () {
 
         window.requestAnimationFrame(this._boundRenderFunction);
     };
-
-    Engine.prototype.onWindowResize = function () {
-        this.camera.aspect = window.innerWidth / window.innerHeight;
-        this.camera.updateProjectionMatrix();
-        this.renderer.setSize(window.innerWidth, window.innerHeight);
-    }
 
     return Engine;
 
