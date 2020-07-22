@@ -34,13 +34,9 @@ gui.add(options, 'Type', { Sphere: 'sphere', Box: 'box' }).onChange((type) => {
     if (boxes.length > 0) {
         changed(type);
     }
-
-    console.log(type);
 });
 
 function start(_type) {
-
-    console.log('start');
 
     if (boxes.length > 0) {
         // console.log(initPosition);
@@ -56,13 +52,11 @@ function start(_type) {
 
         }
     } else {
-        console.log('create', _type);
 
         let boxes_position = new THREE.Vector3(0, 0, 20);
 
         switch (_type) {
             case 'sphere':
-                console.log('0');
 
                 for (let i = 0; i < 1; i++) {
                     for (let j = 0; j < 10; j++) {
@@ -83,7 +77,6 @@ function start(_type) {
                 break;
 
             case 'box':
-                console.log('1');
 
                 for (let i = 0; i < 1; i++) {
                     for (let j = 0; j < 10; j++) {
