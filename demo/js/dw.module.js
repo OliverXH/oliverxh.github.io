@@ -8,14 +8,13 @@ let DW = {};
 DW.Engine = (function () {
 
     function Engine() {
+
         let options = {
             antialias: false,
             allowSleep: false,
             gravity: new CANNON.Vec3(0, 0, -10),
-            message: 'three.js',
-            speed: 0.8,
-            displayOutline: false,
-            button: function () { console.log("Hello") },
+            message: 'Select an object to start',
+            save_as_picture: null
         }
 
         this.options = options;
@@ -266,42 +265,33 @@ DW.Engine = (function () {
         /**
          * download button
          */
-        (function (_canvas) {
 
+        this.options.save_as_picture = function () {
             let link = document.createElement("a");
-            link.style.zIndex = "20";
-            link.style.position = "absolute";
-            link.style.top = "20px";
-            link.style.left = "20px";
-            let btn = document.createElement('button');
-            btn.innerHTML = "Save as picture";
-            btn.style.fontSize = "20px";
-            link.appendChild(btn);
+
             document.body.appendChild(link);
 
-            link.addEventListener('click', downLoad);
+            let canvas = this.renderer.domElement;
 
-            function downLoad() {
+            link.download = "myimage.png";
+            link.href = canvas.toDataURL("image/png");
 
-                let canvas = _canvas;
-
-                link.download = "myimage.png";
-                link.href = canvas.toDataURL("image/png");
-
-                // console.log(link);
-
-            }
-
-        })(this.renderer.domElement);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }.bind(this);
 
     }
 
     Engine._initGUI = function () {
-        const gui = new dat.GUI();
+        this.gui = new dat.GUI();
 
-        let world = gui.addFolder('World');
-        world.add(this.options.gravity, 'x');
-        world.add(this.options, 'allowSleep').onChange((enabled) => {
+        this.settings = this.gui.addFolder('Settings');
+        let gravity = this.settings.addFolder('Gravity');
+        gravity.add(this.options.gravity, 'x');
+        gravity.add(this.options.gravity, 'y');
+        gravity.add(this.options.gravity, 'z');
+        this.settings.add(this.options, 'allowSleep').onChange((enabled) => {
             if (enabled) {
                 this.world.allowSleep = true;
             } else {
@@ -310,8 +300,7 @@ DW.Engine = (function () {
             }
         });
 
-        let scene = gui.addFolder('Scene');
-        scene.add(this.options, 'antialias').onChange((enabled) => {
+        this.settings.add(this.options, 'antialias').onChange((enabled) => {
             if (enabled) {
 
                 // this.renderer = new THREE.WebGLRenderer({
@@ -331,10 +320,8 @@ DW.Engine = (function () {
             }
 
         });
-        gui.add(this.options, 'message');
-        gui.add(this.options, 'speed', -5, 5);
-        gui.add(this.options, 'displayOutline');
-        gui.add(this.options, 'button');
+        this.gui.add(this.options, 'message');
+        this.gui.add(this.options, 'save_as_picture');
         return;
     }
 
