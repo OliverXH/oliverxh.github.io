@@ -17,7 +17,7 @@ let gui = engine.gui;
 //  Test 
 //====================================================================================
 let options = {
-    Type: 'sphere',
+    Type: 'box',
     Start_and_Reset: function () {
         console.log(options.Type);
         start(options.Type);
@@ -183,7 +183,7 @@ scene.add(rampMesh);
 let rampShape = new CANNON.Box(new CANNON.Vec3(20.0, 10.0, 0.05));
 rampMesh.body = new CANNON.Body({
     mass: 0,
-    position: new CANNON.Vec3(0, 20.0, 3.5)
+    position: new CANNON.Vec3(0, 35.0, 3.5)
 });
 rampMesh.body.addShape(rampShape);
 world.add(rampMesh.body);
@@ -200,7 +200,7 @@ scene.add(rampMesh);
 
 rampMesh.body = new CANNON.Body({
     mass: 0,
-    position: new CANNON.Vec3(0, -20.0, 3.5)
+    position: new CANNON.Vec3(0, -35.0, 3.5)
 });
 rampMesh.body.addShape(rampShape);
 world.add(rampMesh.body);
