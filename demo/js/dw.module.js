@@ -68,14 +68,12 @@ DW.Engine = (function () {
         // renderer.sortObjects = false;
         document.body.appendChild(this.renderer.domElement);
 
-        //添加辅助线
         let helper = new THREE.GridHelper(400, 100);
         helper.rotateX(Math.PI / 2);
         // helper.material.opacity = 0.75;
         helper.material.transparent = true;
         // this.environment.add(helper);
 
-        //添加光源
         let ambientLight = new THREE.AmbientLight(0xffffff, 0.6); // soft white light
         let spotLight = new THREE.PointLight(0xffffff, 1);
         spotLight.position.set(20, 20, 50);
@@ -330,7 +328,7 @@ DW.Engine = (function () {
     // }
 
     Engine.prototype.stopRenderLoop = function (renderFunction) {
-        if (!renderFunction) { // 停止全部
+        if (!renderFunction) { // stop all
             this._activeRenderLoops = [];
             return;
         }
@@ -369,7 +367,7 @@ DW.Engine = (function () {
     };
 
     Engine.prototype.runRenderLoop = function (renderFunction) {
-        if (this._activeRenderLoops.indexOf(renderFunction) !== -1) { // 若在 this._activeRenderLoops 中存在
+        if (this._activeRenderLoops.indexOf(renderFunction) !== -1) { 
             return;
         }
         if (renderFunction)
