@@ -30,7 +30,7 @@ Ammo().then(function () {
     // createBall();
     // createCylinder();
 
-    let texture = textureLoader.load("assert/Landscape.png");
+    let texture = textureLoader.load("https://i.postimg.cc/KY6QSXp7/Landscape.png");
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.RepeatWrapping;
     texture.repeat.set(50, 50);
