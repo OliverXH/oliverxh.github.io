@@ -151,45 +151,6 @@ DW.Engine = (function () {
                 this.control.enabled = !event.value;    // 禁用 OrbitControls
 
             });
-            transformControls.addEventListener('mouseDown', () => {
-
-                // console.log(transformControls.object.body);
-
-                if (transformControls.object.body !== void 0) {
-
-                    // if (!transformControls.object.body.isStaticObject())
-                    transformControls.object.body.setActivationState(2);
-
-                    document.body.addEventListener('mousemove', handleMove);
-
-                    transformControls.addEventListener('mouseUp', () => {
-
-                        // if (!transformControls.object.body.isStaticObject())
-                        transformControls.object.body.setActivationState(1);
-
-                        transformControls.object.body.activate();
-
-                        document.body.removeEventListener('mousemove', handleMove);
-
-                    });
-                }
-
-            });
-
-            /** 
-             * 更改模式
-            */
-            window.addEventListener('keydown', (event) => {
-                console.log(event.keyCode);
-                switch (event.keyCode) {
-                    case 84: // Translate
-                        transformControls.setMode('translate');
-                        break;
-                    case 82: // Rotate
-                        transformControls.setMode('rotate');
-                        break;
-                }
-            });
 
             /** 
              * 处理Transform Controls 的移动
@@ -208,6 +169,21 @@ DW.Engine = (function () {
 
                 transformControls.object.body.setMotionState(motionState);
             }
+
+            /** 
+             * 更改模式
+            */
+            window.addEventListener('keydown', (event) => {
+                // console.log(event.keyCode);
+                switch (event.keyCode) {
+                    case 84: // Translate
+                        transformControls.setMode('translate');
+                        break;
+                    case 82: // Rotate
+                        transformControls.setMode('rotate');
+                        break;
+                }
+            });
 
             document.body.addEventListener('mousedown', onMouseDown, false);
             // document.body.addEventListener('touchstart', onTouchStart, false);
@@ -255,6 +231,18 @@ DW.Engine = (function () {
 
             }
 
+            function getObject(object) {
+                let returnObject;
+
+                if (object.parent.type == 'Scene') {
+                    returnObject = object;
+                } else if (object.parent.type == 'Group') {
+                    returnObject = getObject(object.parent);
+                }
+
+                return returnObject;
+            }
+
             function handleClick() {
 
                 if (onDownPosition.distanceTo(onUpPosition) === 0) {
@@ -270,14 +258,11 @@ DW.Engine = (function () {
 
                     // console.log(objectCollections);
 
-
                     let intersects = getIntersects(onUpPosition, objectCollections);
 
                     if (intersects.length > 0) {
 
-                        let object = intersects[0].object;
-
-                        // console.log(object);
+                        let object = getObject(intersects[0].object);
 
                         transformControls.attach(object);
 
@@ -379,24 +364,37 @@ DW.Engine = (function () {
         this.world.stepSimulation(deltaTime, 10);
 
         this.scene.traverse((child) => {
-            if ((!this.transformControls.dragging || this.transformControls.object !== child) && child.body) {
-                // Update rigid bodies
+            if (void 0 !== child.body) {
+                if (this.transformControls.dragging && this.transformControls.object == child) {
+                    let position = new THREE.Vector3();
+                    let quat = new THREE.Vector4();
+                    position.copy(this.transformControls.object.position);
+                    quat.copy(this.transformControls.object.quaternion);
 
-                let objAmmo = child.body;
-                let ms = objAmmo.getMotionState();
+                    let transform = new Ammo.btTransform();
+                    transform.setIdentity();
+                    transform.setOrigin(new Ammo.btVector3(position.x, position.y, position.z));
+                    transform.setRotation(new Ammo.btQuaternion(quat.x, quat.y, quat.z, quat.w));
 
-                if (ms) {
+                    this.transformControls.object.body.setLinearVelocity(new Ammo.btVector3(0, 0, 0));
+                    this.transformControls.object.body.setAngularVelocity(new Ammo.btVector3(0, 0, 0));
 
-                    ms.getWorldTransform(tmpTrans);
+                    let motionState = new Ammo.btDefaultMotionState(transform);
 
-                    let p = tmpTrans.getOrigin();
-                    // console.log(p);
-                    let q = tmpTrans.getRotation();
-                    child.position.set(p.x(), p.y(), p.z());
-                    child.quaternion.set(q.x(), q.y(), q.z(), q.w());
-
+                    this.transformControls.object.body.setMotionState(motionState);
+                    this.transformControls.object.body.activate();
+                } else {
+                    // Update rigid bodies
+                    let objAmmo = child.body;
+                    let ms = objAmmo.getMotionState();
+                    if (ms) {
+                        ms.getWorldTransform(tmpTrans);
+                        let p = tmpTrans.getOrigin();
+                        let q = tmpTrans.getRotation();
+                        child.position.set(p.x(), p.y(), p.z());
+                        child.quaternion.set(q.x(), q.y(), q.z(), q.w());
+                    }
                 }
-
             }
         });
 
@@ -618,25 +616,26 @@ DW.AmmoJSPlugin = (function () {
 
     /** 
      * Create Collision Shape 
-     * @param {Mesh} mesh 
+     * @param {Object3D} object
      * @param {Boolean} ignoreChildren whether to ignore the children
     */
-    AmmoJSPlugin.prototype._createShape = function (mesh, ignoreChildren) {
+    AmmoJSPlugin.prototype._createShape = function (object, ignoreChildren) {
 
         let returnShape;
 
         if (ignoreChildren === void 0) { ignoreChildren = false; }
 
         if (!ignoreChildren) {
-            let meshChildren = mesh.children;
+            let meshChildren = object.children;
 
             returnShape = new Ammo.btCompoundShape();
 
             let childrenAdded = 0;
 
             meshChildren.forEach((childMesh) => {
+                // console.log(childMesh);
 
-                let shape = createCollisionShape(childMesh);
+                let shape = this._createShape(childMesh);
 
                 let scale = childMesh.parent.scale;
 
@@ -652,8 +651,8 @@ DW.AmmoJSPlugin = (function () {
 
             if (childrenAdded > 0) {
                 // Add parents shape as a child if present
-                if (mesh.type == 'Mesh') {
-                    var shape = this._createShape(mesh, true);
+                if (object.type == 'Mesh') {
+                    var shape = this._createShape(object, true);
                     if (shape) {
                         let transform = new Ammo.btTransform();
                         transform.setIdentity();
@@ -671,48 +670,50 @@ DW.AmmoJSPlugin = (function () {
             }
         }
 
-        switch (mesh.geometry.type) {
-            case 'BoxGeometry':
-            case 'BoxBufferGeometry':
-                returnShape = new Ammo.btBoxShape(new Ammo.btVector3(mesh.geometry.parameters.width * 0.5, mesh.geometry.parameters.height * 0.5, mesh.geometry.parameters.depth * 0.5));
-                break;
-            case 'CircleGeometry':
-            case 'CircleBufferGeometry':
-                console.warn('CircleGeometry is not currently supported');
-                break;
-            case 'ConeGeometry':
-            case 'ConeBufferGeometry':
-                console.warn('ConeGeometry is not currently supported');
-                break;
-            case 'CylinderGeometry':
-            case 'CylinderBufferGeometry':
-                if (mesh.geometry.parameters.radiusTop == mesh.geometry.parameters.radiusBottom)
-                    returnShape = new Ammo.btCylinderShape(new Ammo.btVector3(mesh.geometry.parameters.radiusTop, mesh.geometry.parameters.height * 0.5, mesh.geometry.parameters.radiusTop));
-                else
-                    console.warn('The radius is not equal');
-                break;
-            case 'PlaneGeometry':
-            case 'PlaneBufferGeometry':
-                returnShape = new Ammo.btStaticPlaneShape(new Ammo.btVector3(0, 0, 1), 1);
-                break;
-            case 'SphereGeometry':
-            case 'SphereBufferGeometry':
-                returnShape = new Ammo.btSphereShape(mesh.geometry.parameters.radius);
-                break;
-            case 'ConvexHull':
-                let convexShape = new Ammo.btConvexHullShape();
-                let triangeCount = this._addHullVerts(convexShape, mesh, mesh);
-                if (triangeCount == 0) {
-                    // Cleanup Unused Convex Hull Shape
-                    // impostor._pluginData.toDispose.push(convexShape);
-                    returnShape = new Ammo.btCompoundShape();
-                }
-                else {
-                    returnShape = convexShape;
-                }
-                break;
-        }
+        if (object.geometry.parameters !== void 0) {
+            switch (object.geometry.type) {
+                case 'BoxGeometry':
+                case 'BoxBufferGeometry':
+                    returnShape = new Ammo.btBoxShape(new Ammo.btVector3(object.geometry.parameters.width * 0.5, object.geometry.parameters.height * 0.5, object.geometry.parameters.depth * 0.5));
+                    break;
+                case 'CircleGeometry':
+                case 'CircleBufferGeometry':
+                    console.warn('CircleGeometry is not currently supported');
+                    break;
+                case 'ConeGeometry':
+                case 'ConeBufferGeometry':
+                    console.warn('ConeGeometry is not currently supported');
+                    break;
+                case 'CylinderGeometry':
+                case 'CylinderBufferGeometry':
+                    if (object.geometry.parameters.radiusTop == object.geometry.parameters.radiusBottom)
+                        returnShape = new Ammo.btCylinderShape(new Ammo.btVector3(object.geometry.parameters.radiusTop, object.geometry.parameters.height * 0.5, object.geometry.parameters.radiusTop));
+                    else
+                        console.warn('The radius is not equal');
+                    break;
+                case 'PlaneGeometry':
+                case 'PlaneBufferGeometry':
+                    returnShape = new Ammo.btStaticPlaneShape(new Ammo.btVector3(0, 0, 1), 0.0);
+                    break;
+                case 'SphereGeometry':
+                case 'SphereBufferGeometry':
+                    returnShape = new Ammo.btSphereShape(object.geometry.parameters.radius);
+                    break;
+            }
+        } else {
+            // ConvexHull
 
+            let convexShape = new Ammo.btConvexHullShape();
+            let triangeCount = this._addHullVerts(convexShape, object, object);
+            if (triangeCount == 0) {
+                // Cleanup Unused Convex Hull Shape
+                // impostor._pluginData.toDispose.push(convexShape);
+                returnShape = new Ammo.btCompoundShape();
+            }
+            else {
+                returnShape = convexShape;
+            }
+        }
         return returnShape;
     }
 
