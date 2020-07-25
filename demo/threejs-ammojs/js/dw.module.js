@@ -55,7 +55,7 @@ DW.Engine = (function () {
             solver = new Ammo.btSequentialImpulseConstraintSolver();
 
         this.world = new Ammo.btDiscreteDynamicsWorld(dispatcher, overlappingPairCache, solver, collisionConfiguration);
-        this.world.setGravity(new Ammo.btVector3(0, -20, 0));
+        this.world.setGravity(new Ammo.btVector3(0, -10, 0));
 
     }
 
@@ -65,7 +65,7 @@ DW.Engine = (function () {
         this.environment.add(this.scene);
 
         this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
-        this.camera.position.set(30, 30, 40);
+        this.camera.position.set(10, 8, 8);
 
         // RENDERER
         this.renderer = new THREE.WebGLRenderer({
@@ -73,7 +73,13 @@ DW.Engine = (function () {
             preserveDrawingBuffer: true
         });
         this.renderer.setSize(window.innerWidth, window.innerHeight);
-        this.renderer.setClearColor(0x787878);
+        this.renderer.setClearColor(0xbfd1e5);
+        this.renderer.setPixelRatio(window.devicePixelRatio);
+        this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        this.renderer.toneMappingExposure = 1.0;
+        this.renderer.shadowMap.enabled = true;
+        this.renderer.shadowMapSoft = true;
+        this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         // renderer.sortObjects = false;
         document.body.appendChild(this.renderer.domElement);
 
@@ -85,25 +91,44 @@ DW.Engine = (function () {
         // this.environment.add(helper);
 
         //添加光源
-        let ambientLight = new THREE.AmbientLight(0xffffff, 0.6); // soft white light
-        let spotLight = new THREE.PointLight(0xffffff, 1);
-        spotLight.position.set(20, 20, 50);
-        // spotLight.castShadow = true;
-        // spotLight.shadow.mapSize.height = 4096;
-        // spotLight.shadow.mapSize.width = 4096;
-        //spotLight.castShadow = true ;
-        this.environment.add(spotLight, ambientLight);
+        let hemiLight = new THREE.HemisphereLight(0xffffff, 0xffffff, 1.0);
+        // refreshHemiIntensity();
+        hemiLight.color.setHSL(0.59, 0.4, 0.6);
+        hemiLight.groundColor.setHSL(0.095, 0.2, 0.75);
+        hemiLight.position.set(0, 50, 0);
+        this.environment.add(hemiLight);
+
+        let directionLight = new THREE.DirectionalLight(0xffffff, 1);
+        directionLight.position.set(-100, 100, 50);
+        directionLight.castShadow = true;
+        let d = 10;
+        directionLight.shadow.camera.left = -d;
+        directionLight.shadow.camera.right = d;
+        directionLight.shadow.camera.top = d;
+        directionLight.shadow.camera.bottom = -d;
+
+        directionLight.shadow.camera.near = 2;
+        directionLight.shadow.camera.far = 500;
+
+        directionLight.shadow.mapSize.x = 2048;
+        directionLight.shadow.mapSize.y = 2048;
+
+        let sunTarget = new THREE.Object3D();
+        directionLight.target = this.environment;
+
+        let directionLightHelper = new THREE.DirectionalLightHelper(directionLight, 50);
+        this.environment.add(directionLightHelper);
+
+        this.environment.add(sunTarget, directionLight);
 
         // const spotLightHelper = new THREE.SpotLightHelper(spotLight);
         // this.environment.add(spotLightHelper);
-
-        this.renderer.shadowMap.enabled = true;
-        this.renderer.shadowMapSoft = true;
 
         // this.environment.fog = new THREE.FogExp2(0x000000, 0.01);
 
         this.raycaster = new THREE.Raycaster();
         this.mouse = new THREE.Vector2();
+
     }
 
     Engine._initControl = function () {
@@ -406,6 +431,13 @@ DW.Engine = (function () {
         this.renderer.render(this.environment, this.camera);
 
         this.control.update();
+
+        this.scene.traverse((child) => {
+            if (child.type == 'Mesh') {
+                child.castShadow = true;
+                child.receiveShadow = true;
+            }
+        });
 
         Engine._updatePhysics.bind(this)();
 
