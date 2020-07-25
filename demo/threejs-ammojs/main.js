@@ -24,16 +24,16 @@ let gui = engine.gui;
 
 initGUI();
 
-// createBlock();
-// createBall();
-// createCylinder();
+createBox();
+createSphere();
+createCylinder();
 
-let texture = textureLoader.load("assert/Landscape.png");
+let texture = textureLoader.load("assert/grid.png");
 texture.wrapS = THREE.RepeatWrapping;
 texture.wrapT = THREE.RepeatWrapping;
-texture.repeat.set(50, 50);
+texture.repeat.set(20, 20);
 let plane = new THREE.Mesh(
-    new THREE.PlaneGeometry(1000, 1000),
+    new THREE.PlaneGeometry(20, 20),
     new THREE.MeshLambertMaterial({
         color: 0xffffff,
         map: texture,
@@ -50,7 +50,7 @@ plane.body = ammoJS.generatePhysicsBody(plane, { type: 'rigid', mass: 0 });
 world.addRigidBody(plane.body);
 
 gltfLoader.load(
-    "assert/table.glb",
+    "assert/car.glb",
     (glb) => {
         console.log(glb);
 
@@ -63,10 +63,10 @@ gltfLoader.load(
 
         // glb.scene.children[0].geometry.type = 'ConvexHull';
 
-        scene.add(model);
+        // scene.add(model);
 
-        model.body = ammoJS.generatePhysicsBody(model, { type: 'rigid', mass: 20, restitution: 0.8 });
-        world.addRigidBody(model.body);
+        // model.body = ammoJS.generatePhysicsBody(model, { type: 'rigid', mass: 20, restitution: 0.8 });
+        // world.addRigidBody(model.body);
 
     }
 );
@@ -87,14 +87,14 @@ function initGUI() {
 function createBox() {
 
     //threeJS Section
-    let blockPlane = new THREE.Mesh(new THREE.BoxBufferGeometry(4, 8, 2), new THREE.MeshPhongMaterial({ color: 0xa0afa4 }));
+    let blockPlane = new THREE.Mesh(new THREE.BoxBufferGeometry(1, 1, 1), new THREE.MeshPhongMaterial({ color: 0xa0afa4 }));
 
     blockPlane.position.set(0, 2, 0);
 
     // blockPlane.rotateX(Math.PI / 24);
 
-    blockPlane.castShadow = true;
-    blockPlane.receiveShadow = true;
+    // blockPlane.castShadow = true;
+    // blockPlane.receiveShadow = true;
 
     scene.add(blockPlane);
 
@@ -114,12 +114,12 @@ function createBox() {
 function createSphere() {
 
     //threeJS Section
-    let ball = new THREE.Mesh(new THREE.SphereBufferGeometry(2, 30, 30), new THREE.MeshPhongMaterial({ color: 0xff0505 }));
+    let ball = new THREE.Mesh(new THREE.SphereBufferGeometry(0.2, 30, 30), new THREE.MeshPhongMaterial({ color: 0xff0505 }));
 
-    ball.position.set(0, 20, 0);
+    ball.position.set(0, 3, 0);
 
-    ball.castShadow = true;
-    ball.receiveShadow = true;
+    // ball.castShadow = true;
+    // ball.receiveShadow = true;
 
     scene.add(ball);
     // console.log(ball);
@@ -134,12 +134,15 @@ function createSphere() {
 }
 
 function createCylinder() {
-    let cylinder = new THREE.Mesh(new THREE.CylinderGeometry(6, 6, 3, 30), new THREE.MeshPhongMaterial({ color: 0xf2f505 }));
+    let cylinder = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.5, 30), new THREE.MeshPhongMaterial({ color: 0xf2f505 }));
 
-    cylinder.position.set(10, 15, 0);
+    cylinder.position.set(1, 5, 0);
     cylinder.rotateX(Math.PI / 2);
 
     scene.add(cylinder);
+
+    // cylinder.castShadow = true;
+    // cylinder.receiveShadow = true;
 
     cylinder.body = ammoJS.generatePhysicsBody(cylinder, { type: 'rigid', mass: 6 });
 
