@@ -15,6 +15,7 @@ DW.Engine = (function () {
         let options = {
             antialias: false,
             allowSleep: false,
+            Shadows: true,
             // gravity: new CANNON.Vec3(0, 0, -10),
             message: 'Select an object to start',
             save_as_picture: null
@@ -22,8 +23,7 @@ DW.Engine = (function () {
 
         this.options = options;
 
-        this.world = null;
-        this.timestep = 1 / 60;
+        // this.world = null;
         this.environment = null;
         this.camera = null;
         this.renderer = null;
@@ -38,25 +38,12 @@ DW.Engine = (function () {
 
         this.antialias = false;
 
-        Engine._initWorld.bind(this)();
         Engine._initScene.bind(this)();
         Engine._initControl.bind(this)();
         Engine._initUI.bind(this)();
         Engine._initGUI.bind(this)();
 
         window.addEventListener("resize", this.onWindowResize.bind(this), false);
-    }
-
-    Engine._initWorld = function () {
-
-        let collisionConfiguration = new Ammo.btDefaultCollisionConfiguration(),
-            dispatcher = new Ammo.btCollisionDispatcher(collisionConfiguration),
-            overlappingPairCache = new Ammo.btDbvtBroadphase(),
-            solver = new Ammo.btSequentialImpulseConstraintSolver();
-
-        this.world = new Ammo.btDiscreteDynamicsWorld(dispatcher, overlappingPairCache, solver, collisionConfiguration);
-        this.world.setGravity(new Ammo.btVector3(0, -10, 0));
-
     }
 
     Engine._initScene = function () {
@@ -77,7 +64,7 @@ DW.Engine = (function () {
         this.renderer.setPixelRatio(window.devicePixelRatio);
         this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
         this.renderer.toneMappingExposure = 1.0;
-        this.renderer.shadowMap.enabled = true;
+        this.renderer.shadowMap.enabled = this.options.Shadows;
         this.renderer.shadowMapSoft = true;
         this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         // renderer.sortObjects = false;
@@ -120,9 +107,6 @@ DW.Engine = (function () {
         this.environment.add(directionLightHelper);
 
         this.environment.add(sunTarget, directionLight);
-
-        // const spotLightHelper = new THREE.SpotLightHelper(spotLight);
-        // this.environment.add(spotLightHelper);
 
         // this.environment.fog = new THREE.FogExp2(0x000000, 0.01);
 
@@ -287,7 +271,8 @@ DW.Engine = (function () {
 
                     if (intersects.length > 0) {
 
-                        let object = getObject(intersects[0].object);
+                        // let object = getObject(intersects[0].object);
+                        let object = intersects[0].object;
 
                         transformControls.attach(object);
 
@@ -360,14 +345,45 @@ DW.Engine = (function () {
             }
 
         });
+
+        this.settings.add(this.options, 'Shadows')
+            .onChange((enabled) => {
+                if (enabled) {
+                    console.log(this.renderer.shadowMap.enabled);
+                    this.renderer.shadowMap.enabled = true;
+                    // this.csm.lights.forEach((light) => {
+                    //     light.castShadow = true;
+                    // });
+                }
+                else {
+                    console.log(this.renderer.shadowMap.enabled);
+                    this.renderer.shadowMap.enabled = false;
+                    // this.csm.lights.forEach((light) => {
+                    //     light.castShadow = false;
+                    // });
+                }
+            });
         this.gui.add(this.options, 'message');
         this.gui.add(this.options, 'save_as_picture');
 
     }
 
-    // Engine.prototype.enabledPhysics = function(gravity){
+    Engine.prototype.enabledPhysics = function (gravity) {
+        let collisionConfiguration = new Ammo.btDefaultCollisionConfiguration(),
+            dispatcher = new Ammo.btCollisionDispatcher(collisionConfiguration),
+            overlappingPairCache = new Ammo.btDbvtBroadphase(),
+            solver = new Ammo.btSequentialImpulseConstraintSolver();
 
-    // }
+        this.timestep = 1 / 60;
+        this.world = new Ammo.btDiscreteDynamicsWorld(dispatcher, overlappingPairCache, solver, collisionConfiguration);
+
+        gravity = gravity || new Ammo.btVector3(0, -9.8, 0);
+        this.world.setGravity(gravity);
+    }
+
+    Engine.prototype.isPhysicsEnabled = function () {
+        return this.world !== undefined;
+    };
 
     Engine.prototype.stopRenderLoop = function (renderFunction) {
         if (!renderFunction) { // 停止全部
@@ -439,7 +455,8 @@ DW.Engine = (function () {
             }
         });
 
-        Engine._updatePhysics.bind(this)();
+        if (this.isPhysicsEnabled)
+            Engine._updatePhysics.bind(this)();
 
         if (this._activeRenderLoops.length > 0) {
 
@@ -573,21 +590,64 @@ DW.AmmoJSPlugin = (function () {
         }
     };
 
+    AmmoJSPlugin.prototype.generatePhysicsBodyFromModel = function (model, type, params) {
+
+        let collisionShape = new THREE.Group();
+
+        model.traverse((child) => {
+            if (child.hasOwnProperty('userData')) {
+
+                if (child.userData.hasOwnProperty('data')) {
+                    if (child.userData.data == 'collision' || child.userData.data == 'physics') {
+
+                        child.visible = visible || false;
+
+                        collisionShape.add(child.clone());
+
+                    }
+                }
+            }
+        });
+
+        return this.generatePhysicsBody(collisionShape, type, params);
+    }
+
     /**
      * Creates a physics body using the plugin
      * @param {Mesh} mesh
      * @param {Object} params the info to create the physics body on
      */
-    AmmoJSPlugin.prototype.generatePhysicsBody = function (mesh, params) {
+    AmmoJSPlugin.prototype.generatePhysicsBody = function (mesh, type, params) {
         let mass = params.mass || 0;
         let restitution = params.restitution || 0.4;
         let friction = params.friction || 0.8;
 
-        let colShape = this._createShape(mesh);
+        let collisionShape = new THREE.Group();
+
+        mesh.traverse((child) => {
+            if (child.hasOwnProperty('userData')) {
+
+                if (child.userData.hasOwnProperty('data')) {
+                    if (child.userData.data == 'collision' || child.userData.data == 'physics') {
+
+                        child.visible = params.visible || false;
+
+                        collisionShape.add(child.clone());
+
+                    }
+                }
+            }
+        });
+
+        if (collisionShape.children.length !== 0) {
+            mesh = collisionShape;
+        }
+
+        let colShape = this._createShape(mesh, false);
 
         let body;
 
-        switch (params.type) {
+        switch (type) {
             case 'soft':
                 console.warn('SoftBody is not currently supported');
                 break;
@@ -736,15 +796,16 @@ DW.AmmoJSPlugin = (function () {
             // ConvexHull
 
             let convexShape = new Ammo.btConvexHullShape();
-            let triangeCount = this._addHullVerts(convexShape, object, object);
-            if (triangeCount == 0) {
+            let triangleCount = this._addHullVerts(convexShape, object, object);
+            if (triangleCount == 0) {
                 // Cleanup Unused Convex Hull Shape
-                // impostor._pluginData.toDispose.push(convexShape);
                 returnShape = new Ammo.btCompoundShape();
             }
             else {
                 returnShape = convexShape;
             }
+
+            returnShape.setMargin(0.01);
         }
         return returnShape;
     }
