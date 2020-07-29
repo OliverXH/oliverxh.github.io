@@ -2,7 +2,7 @@ import * as THREE from "../lib/three.module.js";
 import DW from "./dw.module.js";
 
 export default function createCar(scene, world) {
-    let ammoJS = new DW.AmmoJSPlugin();
+    let physics = new DW.PhysicsEngine();
 
     let car = {};
 
@@ -14,7 +14,7 @@ export default function createCar(scene, world) {
     );
 
     let chassisMesh = new THREE.Mesh(new THREE.BoxBufferGeometry(1, 0.2, 2), new THREE.MeshPhongMaterial({ color: 0xa0afa4 }));
-    chassisMesh.body = ammoJS.generatePhysicsBody(chassisMesh, 'rigid', { mass: 400 });
+    chassisMesh.body = physics.generatePhysicsBody(chassisMesh, 'rigid', { mass: 400 });
     scene.add(chassisMesh);
     world.addRigidBody(chassisMesh.body);
 
@@ -39,7 +39,7 @@ export default function createCar(scene, world) {
     // Wheel
     let wheelMeshes = [];
 
-    let friction = 10;
+    let friction = 20;
     let suspensionStiffness = 35.0;
     let suspensionDamping = 2.3;
     let suspensionCompression = 4.4;
@@ -98,14 +98,10 @@ export default function createCar(scene, world) {
         switch (e.keyCode) {
             case 87: // forward
                 forward = (up ? false : true);
-                // vehicle.applyEngineForce(up ? 0 : maxEngineForce, 2);
-                // vehicle.applyEngineForce(up ? 0 : maxEngineForce, 3);
                 break;
 
             case 83: // backward
                 backward = (up ? false : true);
-                // vehicle.applyEngineForce(up ? 0 : -maxEngineForce / 2, 2);
-                // vehicle.applyEngineForce(up ? 0 : -maxEngineForce / 2, 3);
                 break;
 
             case 65: // left
@@ -120,7 +116,7 @@ export default function createCar(scene, world) {
 
     let vehicleSteering = 0;
     let steeringIncrement = .04;
-    let steeringClamp = .5;
+    let steeringClamp = .4;
     let maxEngineForce = 600;
     let maxBreakingForce = 8;
 
