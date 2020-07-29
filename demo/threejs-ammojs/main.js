@@ -3,77 +3,116 @@ import * as THREE from "./lib/three.module.js";
 // import { OrbitControls } from "../lib/OrbitControls.js";
 import { GLTFLoader } from "./lib/GLTFLoader.js";
 import DW from "./js/dw.module.js";
+import createCar from "./car.js";
 
 //letiable declaration
 
 //Ammojs Initialization
-Ammo().then(function () {
-
-    //code goes here
-    // console.log(DW);
+window.onload = function () {
 
     const gltfLoader = new GLTFLoader();
     const textureLoader = new THREE.TextureLoader();
 
     let engine = new DW.Engine();
-    let ammoJS = new DW.AmmoJSPlugin();
+    engine.enabledPhysics();
+
     let scene = engine.scene;
     let world = engine.world;
+    let ammoJS = new DW.AmmoJSPlugin();
 
     let gui = engine.gui;
 
     initGUI();
 
-    createBox();
     createSphere();
     createCylinder();
 
-    let texture = textureLoader.load("assert/grid.png");
-    texture.wrapS = THREE.RepeatWrapping;
-    texture.wrapT = THREE.RepeatWrapping;
-    texture.repeat.set(20, 20);
-    let plane = new THREE.Mesh(
-        new THREE.PlaneGeometry(20, 20),
-        new THREE.MeshLambertMaterial({
-            color: 0xffffff,
-            map: texture,
-            // side: THREE.DoubleSide
-        })
-    );
-    plane.receiveShadow = true;
-    scene.add(plane);
+    (function () {
+        let texture = textureLoader.load("assert/grid.png");
+        texture.wrapS = THREE.RepeatWrapping;
+        texture.wrapT = THREE.RepeatWrapping;
+        texture.repeat.set(200, 200);
+        let plane = new THREE.Mesh(
+            new THREE.PlaneGeometry(200, 200),
+            new THREE.MeshLambertMaterial({
+                color: 0xffffff,
+                map: texture,
+                // side: THREE.DoubleSide
+            })
+        );
+        plane.receiveShadow = true;
+        scene.add(plane);
 
-    plane.rotateX(-Math.PI / 2);
+        plane.rotateX(-Math.PI / 2);
 
-    plane.body = ammoJS.generatePhysicsBody(plane, { type: 'rigid', mass: 0 });
+        plane.body = ammoJS.generatePhysicsBody(plane, 'rigid', { mass: 0 });
 
-    world.addRigidBody(plane.body);
+        world.addRigidBody(plane.body)
+    })();
+
+    (function () {
+        // Hinge constraint
+        let boxA = createBox(10, 0.4, 0.4, 0);
+        let boxB = createBox(10, 0.4, 4, 10);
+        // boxB.position.z += 4;
+        // let pivotA = new Ammo.btVector3(boxA.position.x, boxA.position.y, boxA.position.z);
+        let pivotA = new Ammo.btVector3(0, 0, 0);
+        // let pivotB = new Ammo.btVector3(boxB.position.x, boxB.position.y, boxB.position.z);
+        let pivotB = new Ammo.btVector3(0, 0, 2.5);
+        let axis = new Ammo.btVector3(1, 0, 0);
+        let hinge = new Ammo.btHingeConstraint(boxA.body, boxB.body, pivotA, pivotB, axis, axis, true);
+        world.addConstraint(hinge, true);
+    })();
 
     gltfLoader.load(
-        "assert/car.glb",
+        "assert/slope.glb",
         (glb) => {
             console.log(glb);
 
-            let model = glb.scene;
+            let model = glb.scene.children[0];
+            // let model = glb.scene;
 
             // glb.scene.children[0].material.side = THREE.BackSide;
 
-            // glb.scene.children[0].position.set(30, 4, 0);
-            // glb.scene.children[0].rotateX(-Math.PI / 2);
+            glb.scene.children[0].position.set(40, 3, 0);
+            glb.scene.children[0].rotateX(-Math.PI / 2);
 
             // glb.scene.children[0].geometry.type = 'ConvexHull';
 
-            // scene.add(model);
+            scene.add(model);
 
-            // model.body = ammoJS.generatePhysicsBody(model, { type: 'rigid', mass: 20, restitution: 0.8 });
-            // world.addRigidBody(model.body);
+            model.body = ammoJS.generatePhysicsBody(model, 'rigid', { mass: 0, restitution: 0.6 });
+            world.addRigidBody(model.body);
 
         }
     );
 
+    (function () {
+        //  Add a ramp
+        let rampMeshA = new THREE.Mesh(new THREE.BoxBufferGeometry(20.0, 0.1, 10.0), new THREE.MeshPhongMaterial({ color: 0xa0afa4 }));
+        rampMeshA.position.set(-12, 2, 30);
+        rampMeshA.rotateZ(Math.PI / 12);
+        scene.add(rampMeshA);
+
+        rampMeshA.body = ammoJS.generatePhysicsBody(rampMeshA, 'rigid', { mass: 0 });
+        world.addRigidBody(rampMeshA.body);
+
+        // Another ramp
+        let rampMeshB = new THREE.Mesh(new THREE.BoxBufferGeometry(20.0, 0.1, 10.0), new THREE.MeshPhongMaterial({ color: 0xa0afa4 }));
+        rampMeshB.position.set(12, 2, 30);
+        rampMeshB.rotateZ(-Math.PI / 12);
+        scene.add(rampMeshB);
+
+        rampMeshB.body = ammoJS.generatePhysicsBody(rampMeshB, 'rigid', { mass: 0 });
+        world.addRigidBody(rampMeshB.body);
+
+    })();
+
     function initGUI() {
         let options = {
-            Box: createBox,
+            Box: function () {
+                createBox(1, 1, 1, 10);
+            },
             Sphere: createSphere,
             Cylinder: createCylinder,
         }
@@ -84,71 +123,61 @@ Ammo().then(function () {
         add.add(options, 'Cylinder');
     }
 
-    function createBox() {
+    function createBox(width, height, depth, mass) {
 
         //threeJS Section
-        let blockPlane = new THREE.Mesh(new THREE.BoxBufferGeometry(1, 1, 1), new THREE.MeshPhongMaterial({ color: 0xa0afa4 }));
-
-        blockPlane.position.set(0, 2, 0);
-
-        // blockPlane.rotateX(Math.PI / 24);
-
-        // blockPlane.castShadow = true;
-        // blockPlane.receiveShadow = true;
-
-        scene.add(blockPlane);
-
-        // console.log(blockPlane);
+        let mesh = new THREE.Mesh(new THREE.BoxBufferGeometry(width, height, depth), new THREE.MeshPhongMaterial({ color: 0xa0afa4 }));
+        mesh.position.set(4, 2, 0);
+        scene.add(mesh);
 
         //Ammojs Section
+        mesh.body = ammoJS.generatePhysicsBody(mesh, 'rigid', { mass: mass });
+        world.addRigidBody(mesh.body);
 
-        let body = ammoJS.generatePhysicsBody(blockPlane, { type: 'rigid', mass: 5, friction: 0.2 });
-
-        blockPlane.body = body;
-
-        world.addRigidBody(body);
-
+        return mesh;
     }
 
 
     function createSphere() {
 
         //threeJS Section
-        let ball = new THREE.Mesh(new THREE.SphereBufferGeometry(0.2, 30, 30), new THREE.MeshPhongMaterial({ color: 0xff0505 }));
-
-        ball.position.set(0, 3, 0);
-
-        // ball.castShadow = true;
-        // ball.receiveShadow = true;
-
-        scene.add(ball);
-        // console.log(ball);
+        let mesh = new THREE.Mesh(new THREE.SphereBufferGeometry(0.2, 30, 30), new THREE.MeshPhongMaterial({ color: 0xff0505 }));
+        mesh.position.set(0, 3, 0);
+        scene.add(mesh);
 
         //Ammojs Section
+        mesh.body = ammoJS.generatePhysicsBody(mesh, 'rigid', { mass: 6, restitution: 0.8 });
+        world.addRigidBody(mesh.body);
 
-        let body = ammoJS.generatePhysicsBody(ball, { type: 'rigid', mass: 6, restitution: 0.8 });
-
-        world.addRigidBody(body);
-
-        ball.body = body;
+        return mesh;
     }
 
     function createCylinder() {
-        let cylinder = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.5, 30), new THREE.MeshPhongMaterial({ color: 0xf2f505 }));
-
+        let cylinder = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.5, 30), new THREE.MeshPhongMaterial({ color: 0x15ccdf }));
         cylinder.position.set(1, 5, 0);
         cylinder.rotateX(Math.PI / 2);
-
         scene.add(cylinder);
-
-        // cylinder.castShadow = true;
-        // cylinder.receiveShadow = true;
-
-        cylinder.body = ammoJS.generatePhysicsBody(cylinder, { type: 'rigid', mass: 6 });
-
+        cylinder.body = ammoJS.generatePhysicsBody(cylinder, 'rigid', { mass: 6 });
         world.addRigidBody(cylinder.body);
     }
 
-    engine.runRenderLoop();
+    let car = createCar(scene, world);
+    let mainCamera = engine.camera;
 
-});
+    window.addEventListener('keydown', (e) => {
+        // console.log(e);
+        if (e.keyCode == 32) {
+            if (engine.camera == car.camera)
+                engine.camera = mainCamera;
+            else
+                engine.camera = car.camera;
+        }
+
+        if (e.code == "KeyN")
+            car.reset();
+    });
+    // engine.camera = car.camera;
+
+    engine.runRenderLoop(car.update);
+
+};
