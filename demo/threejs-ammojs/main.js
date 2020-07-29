@@ -3,12 +3,11 @@ import * as THREE from "./lib/three.module.js";
 // import { OrbitControls } from "../lib/OrbitControls.js";
 import { GLTFLoader } from "./lib/GLTFLoader.js";
 import DW from "./js/dw.module.js";
-import createCar from "./car.js";
+import createCar from "./js/car.js";
 
-//letiable declaration
+// Ammo().then(function () {
 
-//Ammojs Initialization
-window.onload = function () {
+console.log(Ammo);
 
     const gltfLoader = new GLTFLoader();
     const textureLoader = new THREE.TextureLoader();
@@ -18,7 +17,7 @@ window.onload = function () {
 
     let scene = engine.scene;
     let world = engine.world;
-    let ammoJS = new DW.AmmoJSPlugin();
+    let physics = new DW.PhysicsEngine();
 
     let gui = engine.gui;
 
@@ -45,7 +44,7 @@ window.onload = function () {
 
         plane.rotateX(-Math.PI / 2);
 
-        plane.body = ammoJS.generatePhysicsBody(plane, 'rigid', { mass: 0 });
+        plane.body = physics.generatePhysicsBody(plane, 'rigid', { mass: 0 });
 
         world.addRigidBody(plane.body)
     })();
@@ -81,7 +80,7 @@ window.onload = function () {
 
             scene.add(model);
 
-            model.body = ammoJS.generatePhysicsBody(model, 'rigid', { mass: 0, restitution: 0.6 });
+            model.body = physics.generatePhysicsBody(model, 'rigid', { mass: 0, restitution: 0.6 });
             world.addRigidBody(model.body);
 
         }
@@ -94,7 +93,7 @@ window.onload = function () {
         rampMeshA.rotateZ(Math.PI / 12);
         scene.add(rampMeshA);
 
-        rampMeshA.body = ammoJS.generatePhysicsBody(rampMeshA, 'rigid', { mass: 0 });
+        rampMeshA.body = physics.generatePhysicsBody(rampMeshA, 'rigid', { mass: 0 });
         world.addRigidBody(rampMeshA.body);
 
         // Another ramp
@@ -103,7 +102,7 @@ window.onload = function () {
         rampMeshB.rotateZ(-Math.PI / 12);
         scene.add(rampMeshB);
 
-        rampMeshB.body = ammoJS.generatePhysicsBody(rampMeshB, 'rigid', { mass: 0 });
+        rampMeshB.body = physics.generatePhysicsBody(rampMeshB, 'rigid', { mass: 0 });
         world.addRigidBody(rampMeshB.body);
 
     })();
@@ -130,8 +129,8 @@ window.onload = function () {
         mesh.position.set(4, 2, 0);
         scene.add(mesh);
 
-        //Ammojs Section
-        mesh.body = ammoJS.generatePhysicsBody(mesh, 'rigid', { mass: mass });
+        //physics Section
+        mesh.body = physics.generatePhysicsBody(mesh, 'rigid', { mass: mass });
         world.addRigidBody(mesh.body);
 
         return mesh;
@@ -145,8 +144,8 @@ window.onload = function () {
         mesh.position.set(0, 3, 0);
         scene.add(mesh);
 
-        //Ammojs Section
-        mesh.body = ammoJS.generatePhysicsBody(mesh, 'rigid', { mass: 6, restitution: 0.8 });
+        //physics Section
+        mesh.body = physics.generatePhysicsBody(mesh, 'rigid', { mass: 6, restitution: 0.8 });
         world.addRigidBody(mesh.body);
 
         return mesh;
@@ -157,7 +156,7 @@ window.onload = function () {
         cylinder.position.set(1, 5, 0);
         cylinder.rotateX(Math.PI / 2);
         scene.add(cylinder);
-        cylinder.body = ammoJS.generatePhysicsBody(cylinder, 'rigid', { mass: 6 });
+        cylinder.body = physics.generatePhysicsBody(cylinder, 'rigid', { mass: 6 });
         world.addRigidBody(cylinder.body);
     }
 
@@ -176,8 +175,7 @@ window.onload = function () {
         if (e.code == "KeyN")
             car.reset();
     });
-    // engine.camera = car.camera;
 
     engine.runRenderLoop(car.update);
 
-};
+// });
