@@ -7,9 +7,7 @@ import * as dat from "../lib/dat.gui.module.js";
  * Ammo.js as a physics engine
 */
 
-let DW = {};
-
-DW.Engine = (function () {
+let Engine = (function () {
 
     function Engine() {
         let options = {
@@ -85,28 +83,29 @@ DW.Engine = (function () {
         hemiLight.position.set(0, 50, 0);
         this.environment.add(hemiLight);
 
-        let directionLight = new THREE.DirectionalLight(0xffffff, 1);
-        directionLight.position.set(-100, 100, 50);
-        directionLight.castShadow = true;
-        let d = 10;
-        directionLight.shadow.camera.left = -d;
-        directionLight.shadow.camera.right = d;
-        directionLight.shadow.camera.top = d;
-        directionLight.shadow.camera.bottom = -d;
+        let directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+        directionalLight.position.set(-100, 100, 50);
+        directionalLight.castShadow = true;
+        let d = 15
+        directionalLight.shadow.camera.left = -d;
+        directionalLight.shadow.camera.right = d;
+        directionalLight.shadow.camera.top = d;
+        directionalLight.shadow.camera.bottom = -d;
 
-        directionLight.shadow.camera.near = 2;
-        directionLight.shadow.camera.far = 500;
+        directionalLight.shadow.camera.near = 2;
+        directionalLight.shadow.camera.far = 500;
 
-        directionLight.shadow.mapSize.x = 2048;
-        directionLight.shadow.mapSize.y = 2048;
+        directionalLight.shadow.mapSize.x = 2048;
+        directionalLight.shadow.mapSize.y = 2048;
 
         let sunTarget = new THREE.Object3D();
-        directionLight.target = this.environment;
+        directionalLight.target = this.environment;
+        this.environment.add(sunTarget, directionalLight);
 
-        let directionLightHelper = new THREE.DirectionalLightHelper(directionLight, 50);
-        this.environment.add(directionLightHelper);
+        this.environment.add( new THREE.CameraHelper( directionalLight.shadow.camera ) );
 
-        this.environment.add(sunTarget, directionLight);
+        // let directionalLightHelper = new THREE.DirectionalLightHelper(directionalLight, 50);
+        // this.environment.add(directionalLightHelper);
 
         // this.environment.fog = new THREE.FogExp2(0x000000, 0.01);
 
@@ -369,16 +368,10 @@ DW.Engine = (function () {
     }
 
     Engine.prototype.enabledPhysics = function (gravity) {
-        let collisionConfiguration = new Ammo.btDefaultCollisionConfiguration(),
-            dispatcher = new Ammo.btCollisionDispatcher(collisionConfiguration),
-            overlappingPairCache = new Ammo.btDbvtBroadphase(),
-            solver = new Ammo.btSequentialImpulseConstraintSolver();
 
-        this.timestep = 1 / 60;
-        this.world = new Ammo.btDiscreteDynamicsWorld(dispatcher, overlappingPairCache, solver, collisionConfiguration);
+        this._physicsEngine = new DW.AmmoJSPlugin(gravity);
 
-        gravity = gravity || new Ammo.btVector3(0, -9.8, 0);
-        this.world.setGravity(gravity);
+        this.world = this._physicsEngine.world;
     }
 
     Engine.prototype.isPhysicsEnabled = function () {
@@ -498,13 +491,35 @@ DW.Engine = (function () {
 
 })();
 
-DW.AmmoJSPlugin = (function () {
+let AmmoJSPlugin = (function () {
 
     /** 
      * Initializes the ammoJS plugin
+     *
+     * // ammo.js
+     * var Ammo = function(Ammo) {
+     *     Ammo = Ammo || {};
+     *     ....
+     * }
+     *
     */
-    function AmmoJSPlugin() {
-        this.name = "AmmoJSPlugin";
+    function AmmoJSPlugin(gravity) {
+        let ammoJSPlugin = Ammo;
+
+        this.ammoJSPlugin = {};
+
+        if (typeof ammoJSPlugin === "function") {
+            ammoJSPlugin(this.ammoJSPlugin);
+        }
+        else {
+            this.ammoJSPlugin = ammoJSPlugin;
+        }
+
+        if (!this.isSupported()) {
+            console.error("AmmoJS is not available. Please make sure you included the js file.");
+            return;
+        }
+
         this._timeStep = 1 / 60;
         this._fixedTimeStep = 1 / 60;
         this._maxSteps = 5;
@@ -516,10 +531,21 @@ DW.AmmoJSPlugin = (function () {
         this._softBodySolver = new Ammo.btDefaultSoftBodySolver();
 
         // this.world = new Ammo.btSoftRigidDynamicsWorld(this._dispatcher, this._overlappingPairCache, this._solver, this._collisionConfiguration, this._softBodySolver);
+        
+        gravity = gravity || new Ammo.btVector3(0, -9.8, 0);
 
-        // this.world = new Ammo.btDiscreteDynamicsWorld(this._dispatcher, this._overlappingPairCache, this._solver, this._collisionConfiguration);
-        // this.world.setGravity(new Ammo.btVector3(0, -20, 0));
+        this.world = new Ammo.btDiscreteDynamicsWorld(this._dispatcher, this._overlappingPairCache, this._solver, this._collisionConfiguration);
+        this.world.setGravity(gravity);
+
     }
+
+    /**
+     * If this plugin is supported
+     * @returns true if its supported
+     */
+    AmmoJSPlugin.prototype.isSupported = function () {
+        return this.ammoJSPlugin !== undefined;
+    };
 
     /**
      * Sets the gravity of the physics world (m/(s^2))
@@ -813,5 +839,10 @@ DW.AmmoJSPlugin = (function () {
     return AmmoJSPlugin;
 
 })();
+
+let DW = {
+    Engine,
+    AmmoJSPlugin,
+};
 
 export default DW;
