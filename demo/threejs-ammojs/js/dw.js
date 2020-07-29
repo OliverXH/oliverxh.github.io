@@ -1,11 +1,16 @@
+/** 
+ * required:
+ * THREE
+ * OrbitControls
+ * TransformControls
+ * dat.GUI
+*/
 
 /** 
  * Ammo.js as a physics engine
 */
 
-let DW = {};
-
-DW.Engine = (function () {
+let Engine = (function () {
 
     function Engine() {
         let options = {
@@ -81,28 +86,29 @@ DW.Engine = (function () {
         hemiLight.position.set(0, 50, 0);
         this.environment.add(hemiLight);
 
-        let directionLight = new THREE.DirectionalLight(0xffffff, 1);
-        directionLight.position.set(-100, 100, 50);
-        directionLight.castShadow = true;
-        let d = 10;
-        directionLight.shadow.camera.left = -d;
-        directionLight.shadow.camera.right = d;
-        directionLight.shadow.camera.top = d;
-        directionLight.shadow.camera.bottom = -d;
+        let directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+        directionalLight.position.set(-100, 100, 50);
+        directionalLight.castShadow = true;
+        let d = 15
+        directionalLight.shadow.camera.left = -d;
+        directionalLight.shadow.camera.right = d;
+        directionalLight.shadow.camera.top = d;
+        directionalLight.shadow.camera.bottom = -d;
 
-        directionLight.shadow.camera.near = 2;
-        directionLight.shadow.camera.far = 500;
+        directionalLight.shadow.camera.near = 2;
+        directionalLight.shadow.camera.far = 500;
 
-        directionLight.shadow.mapSize.x = 2048;
-        directionLight.shadow.mapSize.y = 2048;
+        directionalLight.shadow.mapSize.x = 2048;
+        directionalLight.shadow.mapSize.y = 2048;
 
         let sunTarget = new THREE.Object3D();
-        directionLight.target = this.environment;
+        directionalLight.target = this.environment;
+        this.environment.add(sunTarget, directionalLight);
 
-        let directionLightHelper = new THREE.DirectionalLightHelper(directionLight, 50);
-        this.environment.add(directionLightHelper);
+        this.environment.add(new THREE.CameraHelper(directionalLight.shadow.camera));
 
-        this.environment.add(sunTarget, directionLight);
+        // let directionalLightHelper = new THREE.DirectionalLightHelper(directionalLight, 50);
+        // this.environment.add(directionalLightHelper);
 
         // this.environment.fog = new THREE.FogExp2(0x000000, 0.01);
 
@@ -365,16 +371,10 @@ DW.Engine = (function () {
     }
 
     Engine.prototype.enabledPhysics = function (gravity) {
-        let collisionConfiguration = new Ammo.btDefaultCollisionConfiguration(),
-            dispatcher = new Ammo.btCollisionDispatcher(collisionConfiguration),
-            overlappingPairCache = new Ammo.btDbvtBroadphase(),
-            solver = new Ammo.btSequentialImpulseConstraintSolver();
 
-        this.timestep = 1 / 60;
-        this.world = new Ammo.btDiscreteDynamicsWorld(dispatcher, overlappingPairCache, solver, collisionConfiguration);
+        this._physicsEngine = new DW.PhysicsEngine(gravity);
+        this.world = this._physicsEngine.world;
 
-        gravity = gravity || new Ammo.btVector3(0, -9.8, 0);
-        this.world.setGravity(gravity);
     }
 
     Engine.prototype.isPhysicsEnabled = function () {
@@ -494,13 +494,46 @@ DW.Engine = (function () {
 
 })();
 
-DW.AmmoJSPlugin = (function () {
+// let PhysicsEngine = (function(){
+
+//     function PhysicsEngine(){
+
+//     }
+
+// })();
+
+// let PhysicsEngine = Engine._physicsEngine;
+
+let PhysicsEngine = (function () {
 
     /** 
      * Initializes the ammoJS plugin
+     *
+     * // ammo.js
+     * var Ammo = function(Ammo) {
+     *     Ammo = Ammo || {};
+     *     ....
+     * }
+     *
     */
-    function AmmoJSPlugin() {
-        this.name = "AmmoJSPlugin";
+    function PhysicsEngine(gravity) {
+        let ammoJSPlugin = Ammo;
+
+        this.ammoJSPlugin = {};
+
+        if (typeof ammoJSPlugin === "function") {
+            Ammo(this.ammoJSPlugin).then(function () { });
+            // Ammo().then(PhysicsEngine.init.bind(this)(gravity));
+            console.log(Ammo);
+        } else {
+            this.ammoJSPlugin = ammoJSPlugin;
+        }
+
+        if (!this.isSupported()) {
+            console.error("AmmoJS is not available. Please make sure you included the js file.");
+            return;
+        }
+
         this._timeStep = 1 / 60;
         this._fixedTimeStep = 1 / 60;
         this._maxSteps = 5;
@@ -513,15 +546,25 @@ DW.AmmoJSPlugin = (function () {
 
         // this.world = new Ammo.btSoftRigidDynamicsWorld(this._dispatcher, this._overlappingPairCache, this._solver, this._collisionConfiguration, this._softBodySolver);
 
-        // this.world = new Ammo.btDiscreteDynamicsWorld(this._dispatcher, this._overlappingPairCache, this._solver, this._collisionConfiguration);
-        // this.world.setGravity(new Ammo.btVector3(0, -20, 0));
+        gravity = gravity || new Ammo.btVector3(0, -9.8, 0);
+
+        this.world = new Ammo.btDiscreteDynamicsWorld(this._dispatcher, this._overlappingPairCache, this._solver, this._collisionConfiguration);
+        this.world.setGravity(gravity);
     }
+
+    /**
+     * If this plugin is supported
+     * @returns true if its supported
+     */
+    PhysicsEngine.prototype.isSupported = function () {
+        return this.ammoJSPlugin !== undefined;
+    };
 
     /**
      * Sets the gravity of the physics world (m/(s^2))
      * @param {Ammo.btVector3} gravity Gravity to set
      */
-    AmmoJSPlugin.prototype.setGravity = function (gravity) {
+    PhysicsEngine.prototype.setGravity = function (gravity) {
         this.world.setGravity(gravity);
         this.world.getWorldInfo().set_m_gravity(gravity);
     };
@@ -530,7 +573,7 @@ DW.AmmoJSPlugin = (function () {
      * Amount of time to step forward on each frame (only used if useDeltaForWorldStep is false in the constructor)
      * @param timeStep timestep to use in seconds
      */
-    AmmoJSPlugin.prototype.setTimeStep = function (timeStep) {
+    PhysicsEngine.prototype.setTimeStep = function (timeStep) {
         this._timeStep = timeStep;
     };
 
@@ -538,7 +581,7 @@ DW.AmmoJSPlugin = (function () {
      * Increment to step forward in the physics engine (If timeStep is set to 1/60 and fixedTimeStep is set to 1/120 the physics engine should run 2 steps per frame) (Default: 1/60)
      * @param fixedTimeStep fixedTimeStep to use in seconds
      */
-    AmmoJSPlugin.prototype.setFixedTimeStep = function (fixedTimeStep) {
+    PhysicsEngine.prototype.setFixedTimeStep = function (fixedTimeStep) {
         this._fixedTimeStep = fixedTimeStep;
     };
 
@@ -546,7 +589,7 @@ DW.AmmoJSPlugin = (function () {
      * Sets the maximum number of steps by the physics engine per frame (Default: 5)
      * @param maxSteps the maximum number of steps by the physics engine per frame
      */
-    AmmoJSPlugin.prototype.setMaxSteps = function (maxSteps) {
+    PhysicsEngine.prototype.setMaxSteps = function (maxSteps) {
         this._maxSteps = maxSteps;
     };
 
@@ -554,7 +597,7 @@ DW.AmmoJSPlugin = (function () {
      * Gets the current timestep (only used if useDeltaForWorldStep is false in the constructor)
      * @returns the current timestep in seconds
      */
-    AmmoJSPlugin.prototype.getTimeStep = function () {
+    PhysicsEngine.prototype.getTimeStep = function () {
         return this._timeStep;
     };
 
@@ -564,7 +607,7 @@ DW.AmmoJSPlugin = (function () {
     // When maxSteps is 0 do the entire simulation in one step
     // When maxSteps is > 0, run up to maxStep times, if on the last step the (remaining step - fixedTimeStep) is < fixedTimeStep, the remainder will be used for the step. (eg. if remainder is 1.001 and fixedTimeStep is 1 the last step will be 1.001, if instead it did 2 steps (1, 0.001) issues occuered when having a tiny step in ammo)
     // Note: To get deterministic physics, timeStep would always need to be divisible by fixedTimeStep
-    AmmoJSPlugin.prototype._stepSimulation = function (timeStep, maxSteps, fixedTimeStep) {
+    PhysicsEngine.prototype._stepSimulation = function (timeStep, maxSteps, fixedTimeStep) {
         if (timeStep === void 0) { timeStep = 1 / 60; }
         if (maxSteps === void 0) { maxSteps = 10; }
         if (fixedTimeStep === void 0) { fixedTimeStep = 1 / 60; }
@@ -586,7 +629,7 @@ DW.AmmoJSPlugin = (function () {
         }
     };
 
-    AmmoJSPlugin.prototype.generatePhysicsBodyFromModel = function (model, type, params) {
+    PhysicsEngine.prototype.generatePhysicsBodyFromModel = function (model, type, params) {
 
         let collisionShape = new THREE.Group();
 
@@ -613,7 +656,7 @@ DW.AmmoJSPlugin = (function () {
      * @param {Mesh} mesh
      * @param {Object} params the info to create the physics body on
      */
-    AmmoJSPlugin.prototype.generatePhysicsBody = function (mesh, type, params) {
+    PhysicsEngine.prototype.generatePhysicsBody = function (mesh, type, params) {
         let mass = params.mass || 0;
         let restitution = params.restitution || 0.4;
         let friction = params.friction || 0.8;
@@ -674,7 +717,7 @@ DW.AmmoJSPlugin = (function () {
     }
 
     // adds all verticies (including child verticies) to the convex hull shape
-    AmmoJSPlugin.prototype._addHullVerts = function (btConvexHullShape, topLevelMesh, mesh) {
+    PhysicsEngine.prototype._addHullVerts = function (btConvexHullShape, topLevelMesh, mesh) {
         let geometry = new THREE.Geometry().fromBufferGeometry(mesh.geometry);
 
         let scale = mesh.scale;
@@ -707,7 +750,7 @@ DW.AmmoJSPlugin = (function () {
      * @param {Object3D} object
      * @param {Boolean} ignoreChildren whether to ignore the children
     */
-    AmmoJSPlugin.prototype._createShape = function (object, ignoreChildren) {
+    PhysicsEngine.prototype._createShape = function (object, ignoreChildren) {
 
         let returnShape;
 
@@ -806,8 +849,12 @@ DW.AmmoJSPlugin = (function () {
         return returnShape;
     }
 
-    return AmmoJSPlugin;
+    return PhysicsEngine;
 
 })();
 
-export default DW;
+let DW = {
+    Engine,
+    PhysicsEngine,
+};
+
