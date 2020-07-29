@@ -978,9 +978,10 @@ Z.prototype.set_m_hitPointLocal=Z.prototype.oe=function(a){var c=this.a;a&&"obje
 Z.prototype.__destroy__=function(){FA(this.a)};(function(){function a(){b.BT_CONSTRAINT_ERP=GA();b.BT_CONSTRAINT_STOP_ERP=HA();b.BT_CONSTRAINT_CFM=IA();b.BT_CONSTRAINT_STOP_CFM=JA();b.PHY_FLOAT=KA();b.PHY_DOUBLE=LA();b.PHY_INTEGER=MA();b.PHY_SHORT=NA();b.PHY_FIXEDPOINT88=OA();b.PHY_UCHAR=PA()}Ta?a():Ra.unshift(a)})();this.Ammo=b;
 
 
-  return Ammo.ready
+  // return Ammo.ready
+  return Ammo
 }
-);
+)();
 })();
 if (typeof exports === 'object' && typeof module === 'object')
       module.exports = Ammo;
