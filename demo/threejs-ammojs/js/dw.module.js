@@ -10,16 +10,6 @@ import * as dat from "../lib/dat.gui.module.js";
 let Engine = (function () {
 
     function Engine() {
-        let options = {
-            antialias: false,
-            allowSleep: false,
-            Shadows: true,
-            // gravity: new CANNON.Vec3(0, 0, -10),
-            message: 'Select an object to start',
-            save_as_picture: null
-        }
-
-        this.options = options;
 
         // this.world = null;
         this.environment = null;
@@ -37,14 +27,37 @@ let Engine = (function () {
         this.antialias = false;
 
         Engine._initScene.bind(this)();
-        Engine._initControl.bind(this)();
-        Engine._initUI.bind(this)();
         Engine._initGUI.bind(this)();
+        Engine._initControl.bind(this)();
 
         window.addEventListener("resize", this.onWindowResize.bind(this), false);
     }
 
     Engine._initScene = function () {
+        let options = {
+            antialias: false,
+            allowSleep: false,
+            Shadows: true,
+            // gravity: new CANNON.Vec3(0, 0, -10),
+            message: 'Select an object to start',
+            save_as_picture: function () {
+                let link = document.createElement("a");
+
+                document.body.appendChild(link);
+
+                let canvas = this.renderer.domElement;
+
+                link.download = "myimage.png";
+                link.href = canvas.toDataURL("image/png");
+
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }.bind(this),
+        }
+
+        this.options = options;
+
         this.environment = new THREE.Scene();
         this.scene = new THREE.Scene();
         this.environment.add(this.scene);
@@ -111,6 +124,98 @@ let Engine = (function () {
 
         this.raycaster = new THREE.Raycaster();
         this.mouse = new THREE.Vector2();
+
+    }
+
+    Engine._initGUI = function () {
+
+        this.gui = new dat.GUI();
+
+        this.settings = this.gui.addFolder('Settings');
+        // let gravity = this.settings.addFolder('Gravity');
+        // gravity.add(this.options.gravity, 'x');
+        // gravity.add(this.options.gravity, 'y');
+        // gravity.add(this.options.gravity, 'z');
+        this.settings.add(this.options, 'allowSleep').name('Allow Sleep').onChange((enabled) => {
+            if (enabled) {
+                this.world.allowSleep = true;
+            } else {
+                this.world.allowSleep = false;
+                console.log('false');
+            }
+        });
+
+        this.settings.add(this.options, 'antialias').name('Antialias').onChange((enabled) => {
+            if (enabled) {
+
+                // this.renderer = new THREE.WebGLRenderer({
+                //     antialias: true,
+                //     preserveDrawingBuffer: true
+                // });
+
+                console.log('true');
+            } else {
+
+                // this.renderer = new THREE.WebGLRenderer({
+                //     antialias: false,
+                //     preserveDrawingBuffer: true
+                // });
+
+                console.log('false');
+            }
+
+        });
+
+        this.settings.add(this.options, 'Shadows')
+            .onChange((enabled) => {
+                if (enabled) {
+                    console.log(this.renderer.shadowMap.enabled);
+                    this.renderer.shadowMap.enabled = true;
+                    // this.csm.lights.forEach((light) => {
+                    //     light.castShadow = true;
+                    // });
+                }
+                else {
+                    console.log(this.renderer.shadowMap.enabled);
+                    this.renderer.shadowMap.enabled = false;
+                    // this.csm.lights.forEach((light) => {
+                    //     light.castShadow = false;
+                    // });
+                }
+            });
+        this.gui.add(this.options, 'message');
+        this.gui.add(this.options, 'save_as_picture').name('Save as image');
+
+        this.config = {
+            // Selected Object
+            objectType: "null",
+            materialType: "MATERIAL_TYPE_DIFFUSE",
+            materialColor: "#ffffff",
+            materialColorTexture: 0,
+            materialEmission: "#000000",
+            materialEmissionTexture: 0,
+            materialRoughness: 0.2,
+            materialRoughnessTexture: 0,
+            materialRefractiveIndex: 1.6,
+
+            fitToGround: function () {
+                editor.fitToGroundSelectedObject();
+            },
+            remove: function () {
+                editor.removeSelectedObject();
+            },
+        }
+
+        let selectedObjectFolder = this.gui.addFolder("Selected Object");
+        selectedObjectFolder.add(this.config, 'objectType', {
+            null: "null",
+            sphere: "sphere",
+            box: "aabb",
+        }).name('Type').onChange(function (value) {
+            // editor.updateSelectedObject(value, true, "type");
+        }).listen();
+
+        selectedObjectFolder.open();
 
     }
 
@@ -281,89 +386,6 @@ let Engine = (function () {
 
             }
         }).bind(this)(this.renderer.domElement, this.camera, this.scene);
-
-    }
-
-    Engine._initUI = function () {
-
-        /**
-         * download button
-         */
-
-        this.options.save_as_picture = function () {
-            let link = document.createElement("a");
-
-            document.body.appendChild(link);
-
-            let canvas = this.renderer.domElement;
-
-            link.download = "myimage.png";
-            link.href = canvas.toDataURL("image/png");
-
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }.bind(this);
-
-    }
-
-    Engine._initGUI = function () {
-        this.gui = new dat.GUI();
-
-        this.settings = this.gui.addFolder('Settings');
-        // let gravity = this.settings.addFolder('Gravity');
-        // gravity.add(this.options.gravity, 'x');
-        // gravity.add(this.options.gravity, 'y');
-        // gravity.add(this.options.gravity, 'z');
-        this.settings.add(this.options, 'allowSleep').onChange((enabled) => {
-            if (enabled) {
-                this.world.allowSleep = true;
-            } else {
-                this.world.allowSleep = false;
-                console.log('false');
-            }
-        });
-
-        this.settings.add(this.options, 'antialias').onChange((enabled) => {
-            if (enabled) {
-
-                // this.renderer = new THREE.WebGLRenderer({
-                //     antialias: true,
-                //     preserveDrawingBuffer: true
-                // });
-
-                console.log('true');
-            } else {
-
-                // this.renderer = new THREE.WebGLRenderer({
-                //     antialias: false,
-                //     preserveDrawingBuffer: true
-                // });
-
-                console.log('false');
-            }
-
-        });
-
-        this.settings.add(this.options, 'Shadows')
-            .onChange((enabled) => {
-                if (enabled) {
-                    console.log(this.renderer.shadowMap.enabled);
-                    this.renderer.shadowMap.enabled = true;
-                    // this.csm.lights.forEach((light) => {
-                    //     light.castShadow = true;
-                    // });
-                }
-                else {
-                    console.log(this.renderer.shadowMap.enabled);
-                    this.renderer.shadowMap.enabled = false;
-                    // this.csm.lights.forEach((light) => {
-                    //     light.castShadow = false;
-                    // });
-                }
-            });
-        this.gui.add(this.options, 'message');
-        this.gui.add(this.options, 'save_as_picture');
 
     }
 
@@ -844,6 +866,33 @@ let PhysicsEngine = (function () {
             returnShape.setMargin(0.01);
         }
         return returnShape;
+    }
+
+    PhysicsEngine.prototype.addConstraint = function (mainBody, connectedBody, type, constraintData) {
+
+        let constraint;
+
+        switch (type) {
+            case 'HingeConstraint':
+                if (!constraintData.mainAxis) {
+                    constraintData.mainAxis = new Ammo.btVector3(0, 0, 0);
+                }
+                if (!constraintData.connectedAxis) {
+                    constraintData.connectedAxis = new Ammo.btVector3(0, 0, 0);
+                }
+                var mainAxis = new Ammo.btVector3(constraintData.mainAxis.x, constraintData.mainAxis.y, constraintData.mainAxis.z);
+                var connectedAxis = new Ammo.btVector3(constraintData.connectedAxis.x, constraintData.connectedAxis.y, constraintData.connectedAxis.z);
+                constraint = new Ammo.btHingeConstraint(mainBody, connectedBody, new Ammo.btVector3(constraintData.mainPivot.x, constraintData.mainPivot.y, constraintData.mainPivot.z), new Ammo.btVector3(constraintData.connectedPivot.x, constraintData.connectedPivot.y, constraintData.connectedPivot.z), mainAxis, connectedAxis);
+                break;
+
+            case 'DistanceConstraint':
+                break;
+
+        }
+
+        this.world.addConstraint(constraint, constraintData.collision);
+
+        // return constraint;
     }
 
     return PhysicsEngine;
