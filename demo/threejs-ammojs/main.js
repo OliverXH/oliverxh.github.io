@@ -2,7 +2,7 @@
 import * as THREE from "./lib/three.module.js";
 // import { OrbitControls } from "../lib/OrbitControls.js";
 import { GLTFLoader } from "./lib/GLTFLoader.js";
-import DW from "./js/dw.module.js";
+import DW from "./js/dw@2.0.0.module.js";
 import { createCar, createWall } from "./js/playground.js";
 
 // Ammo().then(function () {
@@ -47,6 +47,24 @@ createCylinder();
     plane.body = physics.generatePhysicsBody(plane, 'rigid', { mass: 0 });
 
     world.addRigidBody(plane.body)
+	
+	//==========
+	// terrain
+	//==========
+	let img = new Image();
+	img.onload = () => {
+		
+		let heightField = physics.generateHeightFieldFromImage(img, 256, 256, 0.1, 20);
+		
+		heightField.material.map = texture;
+		scene.add(heightField);
+		
+		world.addRigidBody(heightField.body);
+		
+		console.log(heightField);
+	}
+	img.src = "assert/heightfield.png";
+	
 })();
 
 (function () {
