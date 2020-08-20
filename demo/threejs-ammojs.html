@@ -57,13 +57,13 @@
 				})
 			);
 			plane.receiveShadow = true;
-			// scene.add(plane);
+			scene.add(plane);
 
 			plane.rotateX(-Math.PI / 2);
 
 			plane.body = physics.generatePhysicsBody(plane, 'rigid', { mass: 0 });
 
-			// world.addRigidBody(plane.body)
+			world.addRigidBody(plane.body)
 			
 			//==========
 			// terrain
