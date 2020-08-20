@@ -132,9 +132,9 @@
 			world.addRigidBody(rampMeshA.body);
 
 			// Another ramp
-			let rampMeshB = new THREE.Mesh(new THREE.BoxBufferGeometry(20.0, 0.1, 10.0), new THREE.MeshPhongMaterial({ color: 0xa0afa4 }));
-			rampMeshB.position.set(12, 2, 30);
-			rampMeshB.rotateZ(-Math.PI / 12);
+			let rampMeshB = new THREE.Mesh(new THREE.BoxBufferGeometry(10.0, 0.1, 20.0), new THREE.MeshPhongMaterial({ color: 0xa0afa4 }));
+			rampMeshB.position.set(0, 2, 30);
+			rampMeshB.rotateX(Math.PI / 12);
 			scene.add(rampMeshB);
 
 			rampMeshB.body = physics.generatePhysicsBody(rampMeshB, 'rigid', { mass: 0 });
