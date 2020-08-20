@@ -57,13 +57,13 @@
 				})
 			);
 			plane.receiveShadow = true;
-			scene.add(plane);
+			// scene.add(plane);
 
 			plane.rotateX(-Math.PI / 2);
 
 			plane.body = physics.generatePhysicsBody(plane, 'rigid', { mass: 0 });
 
-			world.addRigidBody(plane.body)
+			// world.addRigidBody(plane.body)
 			
 			//==========
 			// terrain
@@ -108,7 +108,7 @@
 
 				// glb.scene.children[0].material.side = THREE.BackSide;
 
-				glb.scene.children[0].position.set(40, 3, 0);
+				glb.scene.children[0].position.set(60, 3, 50);
 				glb.scene.children[0].rotateX(-Math.PI / 2);
 
 				// glb.scene.children[0].geometry.type = 'ConvexHull';
@@ -205,6 +205,7 @@
 		}
 
 		let car = createCar(scene, world);
+		car.setPosition(0, 5, 10);
 		let mainCamera = engine.camera;
 
 		window.addEventListener('keydown', (e) => {
