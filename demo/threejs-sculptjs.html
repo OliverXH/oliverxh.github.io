@@ -8,18 +8,18 @@
     <link rel="stylesheet" href="css/style.css">
 
     <!--load 3D libraries-->
-    <script type="text/javascript" src="js/threejs/three.js"></script>
-    <script type="text/javascript" src="js/threejs/stats.js"></script>
-    <script type="text/javascript" src="js/threejs/OrbitControls.js"></script>
+    <script type="text/javascript" src="js/threejs/build/three.js"></script>
+    <script type="text/javascript" src="js/stats.min.js"></script>
     <script type="text/javascript" src="js/dat.gui/dat.gui.js"></script>
 
     <!--load terrain libraries-->
     <script type="text/javascript" src="js/sculpt.js"></script>
 
-    <script>
+    <script type="module">
+		import { OrbitControls } from "./js/threejs/controls/OrbitControls.js";
 
         let TERRAIN_RES = 256;
-        let TERRAIN_SIZE = 10;
+        let TERRAIN_SIZE = 100;
         let TERRAIN_SCULPT_SIZE = 1.5;
         let TERRAIN_SCULPT_AMOUNT = 0.04;
 
@@ -99,7 +99,7 @@
             scene.add(fillLight);
 
             // CONTROLS
-            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls = new OrbitControls(camera, renderer.domElement);
 
             //create plane for reference and for intersection test
             let groundPlaneGeom = new THREE.PlaneGeometry(TERRAIN_SIZE, TERRAIN_SIZE, 1, 1);  //much faster for intersection test when there are no divisions
@@ -147,7 +147,8 @@
                 res: TERRAIN_RES
             });
             // gpuSculpt.setBrushSize(1.5);
-            gpuSculpt.enableGUI();
+            let gui = new dat.GUI();
+            gpuSculpt.enableGUI(gui);
 
             // gpuSculpt.loadFromImage('./images/img1.jpg', 0.1, false);
 
@@ -161,6 +162,7 @@
             visMesh = new THREE.Mesh(visGeom, visMaterial);
             visMesh.name = "visMesh";
             visMesh.position.x = TERRAIN_SIZE;
+			visMesh.visible = false;
             visMesh.castShadow = false;
             visMesh.receiveShadow = false;
             scene.add(visMesh);
@@ -297,8 +299,8 @@
 <body>
     <div id="threejs-container"></div>
     <div class="translucent" id="info-container">
-        <div>Camera: [ LMB: rotate ] [ MMB: pan ] [ Alt+RMB: zoom ]</div>
-        <div>Sculpt: [ KeyS+LMB: add ] [ KeyS+RMB: remove ] </div>
+        <div>Camera: [ LMB: rotate ] [ RMB: pan ] [ SCROLL: zoom ]</div>
+        <div>Sculpt: [ KeyS+LMB: add ] </div>
     </div>
 </body>
 
