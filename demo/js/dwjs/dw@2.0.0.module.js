@@ -1,6 +1,6 @@
 import * as THREE from "../threejs/build/three.module.js";
-import { OrbitControls } from "../threejs/controls/OrbitControls.js";
-import { TransformControls } from "../threejs/controls/TransformControls.js";
+import { OrbitControls } from "../threejs/jsm/controls/OrbitControls.js";
+import { TransformControls } from "../threejs/jsm/controls/TransformControls.js";
 import * as dat from "../dat.gui/dat.gui.module.js";
 
 /** 
