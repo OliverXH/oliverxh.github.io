@@ -107,8 +107,8 @@ let GPUSculpt = (function () {
                 "uniform vec2 uTexelWorldSize;",
                 "uniform float uHeightMultiplier;",
 
-                "varying vec3 vPosition;",
-                "varying vec3 vNormal;",
+                "varying vec3 vViewPosition;",
+                "varying vec3 vViewNormal;",
                 "varying vec2 vUv;",
 
                 THREE.ShaderChunk['common'],
@@ -116,25 +116,16 @@ let GPUSculpt = (function () {
                 THREE.ShaderChunk['shadowmap_pars_vertex'],
 
                 "void main() {",
-
-                // THREE.ShaderChunk['uv_vertex'],
-                // THREE.ShaderChunk['uv2_vertex'],
-                // THREE.ShaderChunk['color_vertex'],
+				
                 THREE.ShaderChunk['beginnormal_vertex'],
-                //THREE.ShaderChunk['morphnormal_vertex'],
-                //THREE.ShaderChunk['skinbase_vertex'],
-                //THREE.ShaderChunk['skinnormal_vertex'],
                 THREE.ShaderChunk['defaultnormal_vertex'],
-                // THREE.ShaderChunk['begin_vertex'],
 
                 "   vUv = uv;",
 
                 //displace y based on texel value
                 "   vec4 t = texture2D(uTexture, vUv) * uHeightMultiplier;",
                 "   vec3 displacedPos = position;",
-                // "if(t.r>2.0)",
                 "	displacedPos = vec3(position.x, t.r, position.z);",
-                "   vPosition = displacedPos;",
 
                 //find normal
                 "   vec2 du = vec2(uTexelSize.r, 0.0);",    // increment
@@ -145,13 +136,13 @@ let GPUSculpt = (function () {
                 "   vec3 vecPosV = vec3(displacedPos.x, texture2D(uTexture, vUv + dv).r * uHeightMultiplier, displacedPos.z - uTexelWorldSize.g) - displacedPos;",  // V+
                 "   vec3 vecNegV = vec3(displacedPos.x, texture2D(uTexture, vUv - dv).r * uHeightMultiplier, displacedPos.z + uTexelWorldSize.g) - displacedPos;",  // V-
 
-                "   vNormal = normalize(normalMatrix * 0.25 * (cross(vecPosU, vecPosV) + cross(vecPosV, vecNegU) + cross(vecNegU, vecNegV) + cross(vecNegV, vecPosU)));",
+                "   vViewNormal = normalize(normalMatrix * 0.25 * (cross(vecPosU, vecPosV) + cross(vecPosV, vecNegU) + cross(vecNegU, vecNegV) + cross(vecNegV, vecPosU)));",
 
                 "   vec4 worldPosition = modelMatrix * vec4(displacedPos, 1.0);",
                 "   vec4 viewPos = modelViewMatrix * vec4(displacedPos, 1.0);",
-                // "   vPosition = viewPos.rgb;",
+                "   vViewPosition = viewPos.rgb;",
 
-                "   gl_Position = projectionMatrix * modelViewMatrix * vec4(displacedPos, 1.0);",
+                "   gl_Position = projectionMatrix * viewPos;",
 
                 THREE.ShaderChunk['shadowmap_vertex'],
 
@@ -235,7 +226,7 @@ let GPUSculpt = (function () {
                 "}"
 
             ].join("\n"),
-
+			
             lambertCursor: [
 
                 //Fragment shader that does basic lambert shading.
@@ -244,7 +235,7 @@ let GPUSculpt = (function () {
                 THREE.ShaderChunk['common'],
                 THREE.ShaderChunk['packing'],
                 THREE.ShaderChunk['bsdfs'],
-				
+
                 THREE.ShaderChunk['lights_pars_begin'],
                 THREE.ShaderChunk['lights_pars_maps'],
                 THREE.ShaderChunk['shadowmap_pars_fragment'],
@@ -257,8 +248,8 @@ let GPUSculpt = (function () {
                 "uniform float uCursorRadius;",
                 "uniform vec3 uCursorColor;",
 
-                "varying vec3 vPosition;",
-                "varying vec3 vNormal;",
+                "varying vec3 vViewPosition;",
+                "varying vec3 vViewNormal;",
                 "varying vec2 vUv;",
 
                 "void main() {",
@@ -271,8 +262,8 @@ let GPUSculpt = (function () {
 
                 "           vec3 direction = directionalLights[ i ].direction;",
                 "           vec3 color = directionalLights[ i ].color;",
-
-                "			vec3 L = normalize(direction);",
+				
+                "           vec3 L = normalize(direction);",
                 "           vec3 N = normalize(vViewNormal);",
                 "           diffuse += dot(N, L) * color;",
 
