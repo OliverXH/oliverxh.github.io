@@ -181,11 +181,6 @@ let GPUSculpt = (function () {
                 "float add(vec2 uv) {",
                 "   float len = length(uv - vec2(uSculptPos.x, 1.0 - uSculptPos.y));",
                 "   return uSculptAmount * smoothstep(uSculptRadius, 0.0, len);",
-                // "   if(len > uSculptRadius)",
-                // "       return 0.03;",
-                // "   else",
-                // "       return 0.03;",
-                // "   return num;",
                 "}",
 
                 "void main() {",
@@ -202,7 +197,6 @@ let GPUSculpt = (function () {
                 "   if (uSculptType == 1) {",
                 "      if (uSculptType == 1) {",  //add
                 "          t1.r += add(vUv);",
-                // "          t1.r += 0.03;",   // 测试无误
                 "      } else if (uSculptType == 2) {",  //remove
                 "          t1.r -= add(vUv);",
                 "          t1.r = max(0.0, tBase.r + t1.r) - tBase.r;",
@@ -225,9 +219,7 @@ let GPUSculpt = (function () {
                 "varying vec2 vUv;",
 
                 "void main() {",
-                "	gl_FragColor = texture2D(uTexture1, vUv) + texture2D(uTexture2, vUv);",	// 颜色值相加
-                // "	vec4 color2 = texture2D(uTexture2, vUv);",
-                // "	gl_FragColor = vec4(3.0, 0.0, 0.0, 0.0) + vec4(color2.rgb, 0.0);",	
+                "	gl_FragColor = texture2D(uTexture1, vUv) + texture2D(uTexture2, vUv);",	
                 "}"
 
             ].join("\n"),
@@ -269,22 +261,7 @@ let GPUSculpt = (function () {
                 "varying vec3 vNormal;",
                 "varying vec2 vUv;",
 
-                /**
-                 *  directionalLights: { value: [], properties: {
-                 *      direction: {},
-                 *      color: {}
-                 *  } },
-                 */
-
                 "void main() {",
-
-                //diffuse component
-
-                // "vec4 diffuseColor = vec4( diffuse, opacity );",
-
-                // "ReflectedLight reflectedLight = ReflectedLight( vec3( 0.0 ), vec3( 0.0 ), vec3( 0.0 ), vec3( 0.0 ) );",
-
-                // "vec3 totalEmissiveRadiance = emissive;",
 
                 "   vec3 diffuse = vec3(0.0);",
 
@@ -295,9 +272,9 @@ let GPUSculpt = (function () {
                 "           vec3 direction = directionalLights[ i ].direction;",
                 "           vec3 color = directionalLights[ i ].color;",
 
-                "           vec4 lightVector = viewMatrix * vec4(direction, 0.0);",
-                "           float normalModulator = dot(normalize(vNormal), normalize(lightVector.xyz));",
-                "           diffuse += normalModulator * color;",
+                "			vec3 L = normalize(direction);",
+                "           vec3 N = normalize(vViewNormal);",
+                "           diffuse += dot(N, L) * color;",
 
                 "       }",
 
