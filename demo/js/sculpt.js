@@ -116,16 +116,26 @@ let GPUSculpt = (function () {
                 THREE.ShaderChunk['shadowmap_pars_vertex'],
 
                 "void main() {",
-				
+
+                // THREE.ShaderChunk['uv_vertex'],
+                // THREE.ShaderChunk['uv2_vertex'],
+                // THREE.ShaderChunk['color_vertex'],
                 THREE.ShaderChunk['beginnormal_vertex'],
+                //THREE.ShaderChunk['morphnormal_vertex'],
+                //THREE.ShaderChunk['skinbase_vertex'],
+                //THREE.ShaderChunk['skinnormal_vertex'],
                 THREE.ShaderChunk['defaultnormal_vertex'],
+                // THREE.ShaderChunk['begin_vertex'],
 
                 "   vUv = uv;",
+				//"	vUv = vec2(4.0 * uv.x, 4.0 * uv.y);",
 
                 //displace y based on texel value
                 "   vec4 t = texture2D(uTexture, vUv) * uHeightMultiplier;",
                 "   vec3 displacedPos = position;",
+                // "if(t.r>2.0)",
                 "	displacedPos = vec3(position.x, t.r, position.z);",
+                // "   vPosition = displacedPos;",
 
                 //find normal
                 "   vec2 du = vec2(uTexelSize.r, 0.0);",    // increment
@@ -172,6 +182,11 @@ let GPUSculpt = (function () {
                 "float add(vec2 uv) {",
                 "   float len = length(uv - vec2(uSculptPos.x, 1.0 - uSculptPos.y));",
                 "   return uSculptAmount * smoothstep(uSculptRadius, 0.0, len);",
+                // "   if(len > uSculptRadius)",
+                // "       return 0.03;",
+                // "   else",
+                // "       return 0.03;",
+                // "   return num;",
                 "}",
 
                 "void main() {",
@@ -188,6 +203,7 @@ let GPUSculpt = (function () {
                 "   if (uSculptType == 1) {",
                 "      if (uSculptType == 1) {",  //add
                 "          t1.r += add(vUv);",
+                // "          t1.r += 0.03;",   // 测试无误
                 "      } else if (uSculptType == 2) {",  //remove
                 "          t1.r -= add(vUv);",
                 "          t1.r = max(0.0, tBase.r + t1.r) - tBase.r;",
@@ -210,7 +226,9 @@ let GPUSculpt = (function () {
                 "varying vec2 vUv;",
 
                 "void main() {",
-                "	gl_FragColor = texture2D(uTexture1, vUv) + texture2D(uTexture2, vUv);",	
+                "	gl_FragColor = texture2D(uTexture1, vUv) + texture2D(uTexture2, vUv);",	// 颜色值相加
+                // "	vec4 color2 = texture2D(uTexture2, vUv);",
+                // "	gl_FragColor = vec4(3.0, 0.0, 0.0, 0.0) + vec4(color2.rgb, 0.0);",	
                 "}"
 
             ].join("\n"),
@@ -226,7 +244,106 @@ let GPUSculpt = (function () {
                 "}"
 
             ].join("\n"),
-			
+
+            lambert: [
+                "uniform vec3 diffuse;",
+                "uniform vec3 emissive;",
+                "uniform float opacity;",
+
+                "varying vec3 vLightFront;",
+                "varying vec3 vIndirectFront;",
+
+                "#ifdef DOUBLE_SIDED",
+                "    varying vec3 vLightBack;",
+                "    varying vec3 vIndirectBack;",
+                "#endif",
+
+
+                THREE.ShaderChunk['common'],
+                THREE.ShaderChunk['packing'],
+                THREE.ShaderChunk['dithering_pars_fragment'],
+                THREE.ShaderChunk['color_pars_fragment'],
+                THREE.ShaderChunk['uv_pars_fragment'],
+                THREE.ShaderChunk['uv2_pars_fragment'],
+                THREE.ShaderChunk['map_pars_fragment'],
+                THREE.ShaderChunk['alphamap_pars_fragment'],
+                THREE.ShaderChunk['aomap_pars_fragment'],
+                THREE.ShaderChunk['lightmap_pars_fragment'],
+                THREE.ShaderChunk['emissivemap_pars_fragment'],
+                THREE.ShaderChunk['envmap_common_pars_fragment'],
+                THREE.ShaderChunk['envmap_pars_fragment'],
+                THREE.ShaderChunk['cube_uv_reflection_fragment'],
+                THREE.ShaderChunk['bsdfs'],
+                THREE.ShaderChunk['lights_pars_begin'],
+                THREE.ShaderChunk['fog_pars_fragment'],
+                THREE.ShaderChunk['shadowmap_pars_fragment'],
+                THREE.ShaderChunk['shadowmask_pars_fragment'],
+                THREE.ShaderChunk['specularmap_pars_fragment'],
+                THREE.ShaderChunk['logdepthbuf_pars_fragment'],
+                THREE.ShaderChunk['clipping_planes_pars_fragment'],
+
+                "void main() {",
+
+                THREE.ShaderChunk['clipping_planes_fragment'],
+
+                "    vec4 diffuseColor = vec4( diffuse, opacity );",
+                "    ReflectedLight reflectedLight = ReflectedLight( vec3( 0.0 ), vec3( 0.0 ), vec3( 0.0 ), vec3( 0.0 ) );",
+                "    vec3 totalEmissiveRadiance = emissive;",
+
+                THREE.ShaderChunk['logdepthbuf_fragment'],
+                THREE.ShaderChunk['map_fragment'],
+                THREE.ShaderChunk['color_fragment'],
+                THREE.ShaderChunk['alphamap_fragment'],
+                THREE.ShaderChunk['alphatest_fragment'],
+                THREE.ShaderChunk['specularmap_fragment'],
+                THREE.ShaderChunk['emissivemap_fragment'],
+
+                // accumulation
+
+                "    #ifdef DOUBLE_SIDED",
+
+                "        reflectedLight.indirectDiffuse += ( gl_FrontFacing ) ? vIndirectFront : vIndirectBack;",
+
+                "    #else",
+
+                "        reflectedLight.indirectDiffuse += vIndirectFront;",
+
+                "    #endif",
+
+                THREE.ShaderChunk['lightmap_fragment'],
+
+                "    reflectedLight.indirectDiffuse *= BRDF_Diffuse_Lambert( diffuseColor.rgb );",
+
+                "    #ifdef DOUBLE_SIDED",
+
+                "        reflectedLight.directDiffuse = ( gl_FrontFacing ) ? vLightFront : vLightBack;",
+
+                "    #else",
+
+                "        reflectedLight.directDiffuse = vLightFront;",
+
+                "    #endif",
+
+                "    reflectedLight.directDiffuse *= BRDF_Diffuse_Lambert( diffuseColor.rgb ) * getShadowMask();",
+
+                // modulation
+
+                THREE.ShaderChunk['aomap_fragment'],
+
+                "    vec3 outgoingLight = reflectedLight.directDiffuse + reflectedLight.indirectDiffuse + totalEmissiveRadiance;",
+
+                THREE.ShaderChunk['envmap_fragment'],
+
+                "    gl_FragColor = vec4( outgoingLight, diffuseColor.a );",
+
+                THREE.ShaderChunk['tonemapping_fragment'],
+                THREE.ShaderChunk['encodings_fragment'],
+                THREE.ShaderChunk['fog_fragment'],
+                THREE.ShaderChunk['premultiplied_alpha_fragment'],
+                THREE.ShaderChunk['dithering_fragment'],
+                "}",
+            ].join("\n"),
+
             lambertCursor: [
 
                 //Fragment shader that does basic lambert shading.
@@ -236,11 +353,14 @@ let GPUSculpt = (function () {
                 THREE.ShaderChunk['packing'],
                 THREE.ShaderChunk['bsdfs'],
 
+                // THREE.ShaderChunk['map_pars_fragment'],
+
                 THREE.ShaderChunk['lights_pars_begin'],
                 THREE.ShaderChunk['lights_pars_maps'],
                 THREE.ShaderChunk['shadowmap_pars_fragment'],
                 THREE.ShaderChunk['shadowmask_pars_fragment'],
 
+				"uniform sampler2D map;",
                 "uniform vec3 uBaseColor;",
 
                 "uniform int uShowCursor;",
@@ -252,7 +372,30 @@ let GPUSculpt = (function () {
                 "varying vec3 vViewNormal;",
                 "varying vec2 vUv;",
 
+                /**
+                 *  directionalLights: { value: [], properties: {
+                 *      direction: {},
+                 *      color: {}
+                 *  } },
+                 */
+
                 "void main() {",
+
+                //diffuse component
+
+                // "vec4 diffuseColor = vec4( diffuse, opacity );",
+
+                // "ReflectedLight reflectedLight = ReflectedLight( vec3( 0.0 ), vec3( 0.0 ), vec3( 0.0 ), vec3( 0.0 ) );",
+
+                // "vec3 totalEmissiveRadiance = emissive;",
+
+                // THREE.ShaderChunk['map_fragment'],
+				
+				"	float scale = 50.0;",
+				
+				"	vec2 scaledUv = vec2(vUv.x * scale, vUv.y * scale);",
+				
+				"	vec4 texelColor = texture2D( map, scaledUv );",
 
                 "   vec3 diffuse = vec3(0.0);",
 
@@ -260,12 +403,18 @@ let GPUSculpt = (function () {
 
                 "       for (int i = 0; i < NUM_DIR_LIGHTS; i++) {",
 
-                "           vec3 direction = directionalLights[ i ].direction;",
+                "           vec3 direction = directionalLights[ i ].direction;",    // 视点坐标系下
                 "           vec3 color = directionalLights[ i ].color;",
-				
+
+                // "vec4 lightVector = viewMatrix * vec4(directionalLightDirection[i], 0.0);",
+                // "float normalModulator = dot(normalize(vViewNormal), normalize(lightVector.xyz));",
+                // "diffuse += normalModulator * directionalLightColor[i];",
+
+                // "           vec4 lightVector = viewMatrix * vec4(directionalLights[ 0 ].direction, 0.0);",
                 "           vec3 L = normalize(direction);",
                 "           vec3 N = normalize(vViewNormal);",
-                "           diffuse += dot(N, L) * color;",
+                "           diffuse += (0.1 + dot(N, L)) * vec3(color.x);",
+                //"           diffuse += vec3(0.4 * color.x, 0.4 * color.x, 0.4 * color.z);",
 
                 "       }",
 
@@ -273,7 +422,8 @@ let GPUSculpt = (function () {
 
                 //combine components to get final color
                 // "vec3 finalColor = uBaseColor * (ambient + diffuse);",
-                "   vec3 finalColor = uBaseColor * diffuse;",
+                // "   vec3 finalColor = uBaseColor * diffuse;",
+                "   vec3 finalColor = diffuse * texelColor.xyz;",
 
                 //mix in cursor color
                 "   if (uShowCursor == 1) {",
@@ -282,7 +432,7 @@ let GPUSculpt = (function () {
                 // "       finalColor = vec3(1.0, 0.0, 0.0);",
                 "   }",
 
-                "   gl_FragColor = vec4(finalColor * getShadowMask(), 1.0);",
+                "   gl_FragColor = vec4(finalColor * ( 0.3 + getShadowMask() ), 1.0);",
 
                 "}"
 
@@ -374,6 +524,15 @@ let GPUSculpt = (function () {
             // fragmentShader: this.shaders.frag['lambert'],
             lights: true
         });
+		
+		let texture = new THREE.DataTexture( new Float32Array([0.8, 0.8, 0.8, 1.0, 0.2, 0.2, 0.2, 1.0, 0.2, 0.2, 0.2, 1.0, 0.8, 0.8, 0.8, 1.0]), 2, 2, THREE.RGBAFormat, THREE.FloatType, undefined, THREE.RepeatWrapping, THREE.RepeatWrapping, THREE.LinearFilter, THREE.LinearMipMapLinearFilter);
+		
+		const texLoader = new THREE.TextureLoader();
+		let tex = texLoader.load('./assert/texture/tex.png');
+		tex.wrapS = THREE.RepeatWrapping;
+		tex.wrapT = THREE.RepeatWrapping;
+		
+		this.mesh.material.uniforms['map'].value = tex;
 
         // this.mesh.material = new THREE.ShaderMaterial({
 
