@@ -222,8 +222,8 @@ let Engine = (function () {
     Engine._initControl = function () {
 
         this.control = new OrbitControls(this.camera, this.renderer.domElement);
-        this.control.enableDamping = true;
-        this.control.dampingFactor = 0.05;
+        // this.control.enableDamping = true;
+        // this.control.dampingFactor = 0.05;
         // this.control.maxPolarAngle = 1.5;
         this.control.update();
 
