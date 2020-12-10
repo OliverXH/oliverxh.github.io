@@ -2,20 +2,20 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ammo.js</title>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Ammo.js</title>
 
-    <link rel="stylesheet" href="css/style.css">
-		
+	<link rel="stylesheet" href="css/style.css">
+
 </head>
 
 <body>
 	<!-- <script src="https://cdn.babylonjs.com/ammo.js"></script> -->
-    <script src="js/ammo.js"></script>
-	
-    <script type="module">
-				
+	<script src="js/ammo.js"></script>
+
+	<script type="module">
+
 		import * as THREE from "./js/threejs/build/three.module.js";
 		// import { OrbitControls } from "./js/threejs/controls/OrbitControls.js";
 		import { GLTFLoader } from "./js/threejs/jsm/loaders/GLTFLoader.js";
@@ -24,7 +24,7 @@
 
 		// Ammo().then(function () {
 
-		console.log(Ammo);
+		// console.log(Ammo);
 
 		const gltfLoader = new GLTFLoader();
 		const textureLoader = new THREE.TextureLoader();
@@ -35,6 +35,9 @@
 		let scene = engine.scene;
 		let world = engine.world;
 		let physics = new DW.PhysicsEngine();
+
+		// const axesHelper = new THREE.AxesHelper(5);
+		// scene.add(axesHelper);
 
 		let gui = engine.gui;
 
@@ -57,38 +60,38 @@
 				})
 			);
 			plane.receiveShadow = true;
-			scene.add(plane);
+			// scene.add(plane);
 
 			plane.rotateX(-Math.PI / 2);
 
-			plane.body = physics.generatePhysicsBody(plane, 'rigid', { mass: 0 });
+			plane.body = physics.generatePhysicsBody(plane, { mass: 0 });
 
 			world.addRigidBody(plane.body)
-			
+
 			//==========
 			// terrain
 			//==========
 			let img = new Image();
 			img.onload = () => {
-				
-				let heightField = physics.generateHeightFieldFromImage(img, 256, 256, 0.1, 20);
-				
-				heightField.material.map = texture;
-				scene.add(heightField);
-				
-				world.addRigidBody(heightField.body);
-				
-				console.log(heightField);
+
+				// let heightField = physics.generateHeightFieldFromImage(img, 256, 256, 0.1, 20);
+
+				// heightField.material.map = texture;
+				// scene.add(heightField);
+
+				// world.addRigidBody(heightField.body);
+
+				// console.log(heightField);
 			}
 			img.src = "assert/texture/heightfield.png";
-			
+
 		})();
 
 		(function () {
 			// Hinge constraint
 			let boxA = createBox(10, 0.4, 0.4, 0);
 			let boxB = createBox(10, 0.4, 4, 10);
-			// boxB.position.z += 4;
+			// boxB.position.z -= 8;
 			// let pivotA = new Ammo.btVector3(boxA.position.x, boxA.position.y, boxA.position.z);
 			let pivotA = new Ammo.btVector3(0, 0, 0);
 			// let pivotB = new Ammo.btVector3(boxB.position.x, boxB.position.y, boxB.position.z);
@@ -96,30 +99,68 @@
 			let axis = new Ammo.btVector3(1, 0, 0);
 			let hinge = new Ammo.btHingeConstraint(boxA.body, boxB.body, pivotA, pivotB, axis, axis, true);
 			world.addConstraint(hinge, true);
-		})();
+		})//();
 
 		gltfLoader.load(
-			"assert/gltf/slope.glb",
+			// "assert/gltf/slope.glb",
+			"assert/bridge.glb",
 			(glb) => {
-				console.log(glb);
+				// console.log(glb);
 
-				let model = glb.scene.children[0];
-				// let model = glb.scene;
+				// let model = glb.scene.children[0];
+				let model = glb.scene;
 
 				// glb.scene.children[0].material.side = THREE.BackSide;
 
-				glb.scene.children[0].position.set(60, 3, 50);
-				glb.scene.children[0].rotateX(-Math.PI / 2);
+				// glb.scene.children[0].position.set(60, 3, 50);
+				// glb.scene.children[0].rotateX(-Math.PI / 2);
 
 				// glb.scene.children[0].geometry.type = 'ConvexHull';
 
 				scene.add(model);
 
-				model.body = physics.generatePhysicsBody(model, 'rigid', { mass: 0, restitution: 0.6 });
-				world.addRigidBody(model.body);
+				// model.body = physics.newTrimesh(model, { mass: 0, restitution: 0.6 });
+				// world.addRigidBody(model.body);
 
+				console.log('loading complete');
+
+				addToWorld(glb);
+
+			},
+			(event) => {
+				console.log('loading...');
 			}
 		);
+
+		function addToWorld(glb, mass = 0) {
+			let objectGroups = [];
+
+			glb.scene.traverse(child => {
+
+				if (child.type == 'Mesh') {
+					child.material.side = THREE.FrontSide;
+
+					child.castShadow = true;
+					child.receiveShadow = true;
+
+					// MAIN_add_object(scene, child, Type.ACTIVE);
+
+					// scene.add(child);
+					child.body = physics.newTrimesh(child, { mass: 0, restitution: 0.6 });
+					world.addRigidBody(child.body);
+
+					// child.rigidbody_object.shape = mass > 0 ? Shape.CONVEXH : Shape.TRIMESH;
+					// child.rigidbody_object.shape = Shape.TRIMESH;
+					// child.rigidbody_object.mass = mass;
+					// child.rigidbody_object.friction = 0.01;
+
+					objectGroups.push(child);
+				}
+
+			});
+
+			scene.add(...objectGroups);
+		}
 
 		(function () {
 			//  Add a ramp
@@ -128,7 +169,7 @@
 			rampMeshA.rotateZ(Math.PI / 12);
 			scene.add(rampMeshA);
 
-			rampMeshA.body = physics.generatePhysicsBody(rampMeshA, 'rigid', { mass: 0 });
+			rampMeshA.body = physics.generatePhysicsBody(rampMeshA, { mass: 0 });
 			world.addRigidBody(rampMeshA.body);
 
 			// Another ramp
@@ -137,7 +178,7 @@
 			rampMeshB.rotateX(Math.PI / 12);
 			scene.add(rampMeshB);
 
-			rampMeshB.body = physics.generatePhysicsBody(rampMeshB, 'rigid', { mass: 0 });
+			rampMeshB.body = physics.generatePhysicsBody(rampMeshB, { mass: 0 });
 			world.addRigidBody(rampMeshB.body);
 
 		})();
@@ -174,7 +215,7 @@
 			scene.add(mesh);
 
 			//physics Section
-			mesh.body = physics.generatePhysicsBody(mesh, 'rigid', { mass: mass });
+			mesh.body = physics.generatePhysicsBody(mesh, { mass: mass });
 			world.addRigidBody(mesh.body);
 
 			return mesh;
@@ -189,7 +230,7 @@
 			scene.add(mesh);
 
 			//physics Section
-			mesh.body = physics.generatePhysicsBody(mesh, 'rigid', { mass: 6, restitution: 0.8 });
+			mesh.body = physics.generatePhysicsBody(mesh, { mass: 6, restitution: 0.8 });
 			world.addRigidBody(mesh.body);
 
 			return mesh;
@@ -200,13 +241,28 @@
 			cylinder.position.set(1, 5, 0);
 			cylinder.rotateX(Math.PI / 2);
 			scene.add(cylinder);
-			cylinder.body = physics.generatePhysicsBody(cylinder, 'rigid', { mass: 6 });
+			cylinder.body = physics.generatePhysicsBody(cylinder, { mass: 6 });
 			world.addRigidBody(cylinder.body);
 		}
 
 		let car = createCar(scene, world);
 		car.setPosition(0, 5, 10);
 		let mainCamera = engine.camera;
+
+		let carOptions = {
+			getRotation: function () {
+				// console.log(car.camera.rotation.y);
+				// console.log(car.followControls.target.rotation.y);
+				// console.log(car.mesh.quaternion.y/car.mesh.quaternion.w);
+				// console.log(Math.acos(car.mesh.matrixWorld.elements[0]/car.mesh.matrixWorld.elements[5]));
+				// console.log(Math.asin(2.0 * (quat.z * quat.x - quat.w * quat.y)));
+				// console.log(car.mesh.rotation.x, car.mesh.rotation.y, car.mesh.rotation.z);
+				let vec = car.mesh.localToWorld(new THREE.Vector3(0, 0, 1)).sub(car.mesh.position).normalize();
+				console.log(Math.atan2(vec.x, vec.z));
+			}
+			// }
+		}
+		gui.add(carOptions, 'getRotation');
 
 		window.addEventListener('keydown', (e) => {
 			// console.log(e);
@@ -215,6 +271,8 @@
 					engine.camera = mainCamera;
 				else
 					engine.camera = car.camera;
+
+				console.log(engine.camera/* .position */);
 			}
 
 			if (e.code == "KeyN")
@@ -226,7 +284,7 @@
 
 		// });
 
-	
+
 	</script>
 </body>
 

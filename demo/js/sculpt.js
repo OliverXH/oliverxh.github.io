@@ -533,40 +533,7 @@ let GPUSculpt = (function () {
 		tex.wrapT = THREE.RepeatWrapping;
 		
 		this.mesh.material.uniforms['map'].value = tex;
-
-        // this.mesh.material = new THREE.ShaderMaterial({
-
-        //     uniforms: THREE.UniformsUtils.merge([
-        //         THREE.UniformsLib.common,
-        //         THREE.UniformsLib.specularmap,
-        //         THREE.UniformsLib.envmap,
-        //         THREE.UniformsLib.aomap,
-        //         THREE.UniformsLib.lightmap,
-        //         THREE.UniformsLib.emissivemap,
-        //         THREE.UniformsLib.fog,
-        //         THREE.UniformsLib.lights,
-        //         {
-        //             uTexture: { type: "t", value: null },
-        //             uTexelSize: { type: "v2", value: new THREE.Vector2(1.0 / this.res, 1.0 / this.res) },
-        //             uTexelWorldSize: { type: "v2", value: new THREE.Vector2(this.gridSize, this.gridSize) },
-        //             uHeightMultiplier: { type: "f", value: 1.0 },
-        //             uBaseColor: { type: "v3", value: new THREE.Vector3(0.6, 0.8, 0.0) },
-        //             uShowCursor: { type: "i", value: 0 },
-        //             uCursorPos: { type: "v2", value: new THREE.Vector2() },
-        //             uCursorRadius: { type: "f", value: 0.0 },
-        //             uCursorColor: { type: "v3", value: new THREE.Vector3() },
-
-        //             emissive: { value: new THREE.Color(0x000000) },
-        //             diffuse: { value: new THREE.Vector3(0.6, 0.8, 0.0) },
-        //             opacity: { value: 1.0 }
-        //         }
-        //     ]),
-
-        //     vertexShader: this.shaders.vert['heightMap'],
-        //     fragmentShader: this.shaders.frag['lambert'],
-
-        // });
-
+		
         this._sculptMaterial = new THREE.ShaderMaterial({
             uniforms: {
                 uBaseTexture: { type: "t", value: null },

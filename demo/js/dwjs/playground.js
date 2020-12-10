@@ -1,5 +1,6 @@
 import * as THREE from "../threejs/build/three.module.js";
 import DW from "./dw@2.0.0.module.js";
+import { FollowControls } from "./followControls.js";
 
 let createCar = function (scene, world) {
     let physics = new DW.PhysicsEngine();
@@ -12,24 +13,22 @@ let createCar = function (scene, world) {
         0.1,
         5000
     );
-	
-	car.camera.damping = 0.3;
-	car.camera.offset = 7;
+    // car.camera.damping = 0.3;
+    // car.camera.offset = 7;
 
     let chassisMesh = new THREE.Mesh(new THREE.BoxBufferGeometry(1, 0.2, 2), new THREE.MeshPhongMaterial({ color: 0xa0afa4 }));
-    chassisMesh.body = physics.generatePhysicsBody(chassisMesh, 'rigid', { mass: 400 });
+    chassisMesh.body = physics.generatePhysicsBody(chassisMesh, { mass: 400 });
     scene.add(chassisMesh);
     world.addRigidBody(chassisMesh.body);
 
-    // let p = chassisMesh.body.getCenterOfMassTransform().getOrigin();
-    // let q = chassisMesh.body.getCenterOfMassTransform().getRotation();
-    // let transform = new Ammo.btTransform();
-    // transform.setIdentity();
-    // transform.setOrigin(new Ammo.btVector3(p.x(), p.y() - 20, p.z()));
-    // transform.setRotation(new Ammo.btQuaternion(q.x(), q.y(), q.z(), q.w()));
-    // chassisMesh.body.setCenterOfMassTransform(transform);
+    car.mesh = chassisMesh;
+    car.mesh.matrixWorldNeedsUpdate = true;
 
-    // console.log(p.x(), p.y(), p.z());
+    const helper = new THREE.CameraHelper(car.camera);
+    // scene.add(helper);
+
+    car.followControls = new FollowControls(car.camera, chassisMesh);
+    car.followControls.heightOffset = 2;
 
     // Raycast Vehicle
     let tuning = new Ammo.btVehicleTuning();
@@ -75,10 +74,10 @@ let createCar = function (scene, world) {
         scene.add(wheelMesh);
     }
 
-    addWheel(true, new Ammo.btVector3(0.6, 0.3, 0.8), 0.3);
-    addWheel(true, new Ammo.btVector3(-0.6, 0.3, 0.8), 0.3);
     addWheel(false, new Ammo.btVector3(-0.6, 0.3, -0.8), 0.3);
     addWheel(false, new Ammo.btVector3(0.6, 0.3, -0.8), 0.3);
+    addWheel(true, new Ammo.btVector3(0.6, 0.3, 0.8), 0.3);
+    addWheel(true, new Ammo.btVector3(-0.6, 0.3, 0.8), 0.3);
 
     // Control
 
@@ -99,11 +98,12 @@ let createCar = function (scene, world) {
         let up = e.type == 'keyup';
 
         switch (e.keyCode) {
-            case 87: // forward
+            case 83: // forward
+                // console.log('forward');
                 forward = (up ? false : true);
                 break;
 
-            case 83: // backward
+            case 87: // backward
                 backward = (up ? false : true);
                 break;
 
@@ -123,16 +123,16 @@ let createCar = function (scene, world) {
     let maxEngineForce = 600;
     let maxBreakingForce = 12;
 
-    let maxSpeed = 50;
+    let maxSpeed = 40;
 
     car.reset = function () {
-		
-		console.log("reset");
-		
+
+        console.log("reset");
+
         let position = new THREE.Vector3();
         let quat = new THREE.Quaternion();
         position.copy(chassisMesh.position);
-        quat.setFromAxisAngle( new THREE.Vector3( 0, 1, 0 ), chassisMesh.rotation.y );
+        quat.setFromAxisAngle(new THREE.Vector3(0, 1, 0), chassisMesh.rotation.y);
 
         let transform = new Ammo.btTransform();
         transform.setIdentity();
@@ -142,24 +142,24 @@ let createCar = function (scene, world) {
 
         chassisMesh.body.setMotionState(motionState);
     }
-	
-	car.setPosition = function(x, y, z){
-		
-		console.log("set position");
-		
-		chassisMesh.position.set(x, y, z);
-		
-		let quat = new THREE.Vector4();
-		quat.copy(chassisMesh.quaternion);
-		
-		let transform = new Ammo.btTransform();
-		transform.setIdentity();
-		transform.setOrigin(new Ammo.btVector3(x, y, z));
-		transform.setRotation(new Ammo.btQuaternion(quat.x, quat.y, quat.z, quat.w));
-		let motionState = new Ammo.btDefaultMotionState(transform);
 
-		chassisMesh.body.setMotionState(motionState);
-	}
+    car.setPosition = function (x, y, z) {
+
+        console.log("set position");
+
+        chassisMesh.position.set(x, y, z);
+
+        let quat = new THREE.Vector4();
+        quat.copy(chassisMesh.quaternion);
+
+        let transform = new Ammo.btTransform();
+        transform.setIdentity();
+        transform.setOrigin(new Ammo.btVector3(x, y, z));
+        transform.setRotation(new Ammo.btQuaternion(quat.x, quat.y, quat.z, quat.w));
+        let motionState = new Ammo.btDefaultMotionState(transform);
+
+        chassisMesh.body.setMotionState(motionState);
+    }
 
     car.update = function (deltaTime) {
         // chassisMesh.body.activate();
@@ -219,31 +219,10 @@ let createCar = function (scene, world) {
         vehicle.setSteeringValue(vehicleSteering, 1);
 
         // Camera
-		let target = new THREE.Vector3();
-		target.copy(chassisMesh.position);
-        // target.copy(chassisMesh.localToWorld(new THREE.Vector3(0, 0, 2)));
-		
-		let back = chassisMesh.localToWorld(new THREE.Vector3(0, 0, -1));
-		back.sub(chassisMesh.position);
-		back.y = 0;
-		back.normalize();
-		
-        let newPosition = new THREE.Vector3();
-        newPosition.copy(chassisMesh.position);
-		newPosition.y += 2;
-		
-		let currentPosition = new THREE.Vector3();
-		currentPosition.copy(car.camera.position);
-		
-		// let angle = THREE.MathUtils.lerp(currentAngle.y, desiredAngle.y, deltaTime * car.camera.damping);
-				
-		newPosition.add(back.multiplyScalar(car.camera.offset));
-		
-		// currentPosition.lerp(newPosition, deltaTime * car.camera.damping)
-		
-        car.camera.position.lerp(newPosition, 0.3);
-		// console.log(car.camera.target);
-        car.camera.lookAt(target);
+        car.followControls.update();
+        let target = new THREE.Vector3();
+        target.copy(chassisMesh.position);
+        // car.camera.lookAt(target);
 
         window.addEventListener("resize", function () {
             car.camera.aspect = window.innerWidth / window.innerHeight;
@@ -281,16 +260,16 @@ let createWall = function (scene, world, _options) {
     let type = _options.type || 'rectangle';
     let widthCount = _options.widthCount || 4;
     let heightCount = _options.heightCount || 8;
-	
-	let brickMass = 0.5;
-	let brickLength = 1.6;
-	let brickDepth = 0.8;
-	let brickHeight = brickLength * 0.5;
+
+    let brickMass = 0.5;
+    let brickLength = 1.6;
+    let brickDepth = 0.8;
+    let brickHeight = brickLength * 0.5;
 
     let mesh = new THREE.Mesh(
-		new THREE.BoxGeometry(brickLength, brickHeight, brickDepth),
-		new THREE.MeshPhongMaterial({ color: Math.floor( Math.random() * ( 1 << 24 ) ) })
-	);
+        new THREE.BoxGeometry(brickLength, brickHeight, brickDepth),
+        new THREE.MeshPhongMaterial({ color: Math.floor(Math.random() * (1 << 24)) })
+    );
 
     switch (type) {
         case 'rectangle':
@@ -304,11 +283,11 @@ let createWall = function (scene, world, _options) {
                         _z = _options.position.z;
 
                     let box = mesh.clone();
-					box.material = new THREE.MeshPhongMaterial({ color: Math.floor( Math.random() * ( 1 << 24 ) ) });
+                    box.material = new THREE.MeshPhongMaterial({ color: Math.floor(Math.random() * (1 << 24)) });
                     box.position.set(_x, _y, _z);
-					
+
                     // console.log(_x, _y, _z);
-                    box.body = physics.generatePhysicsBody(box, 'rigid', { mass: brickMass });
+                    box.body = physics.generatePhysicsBody(box, { mass: brickMass });
 
                     scene.add(box);
                     world.addRigidBody(box.body);
@@ -328,7 +307,7 @@ let createWall = function (scene, world, _options) {
 
                     let box = mesh.clone();
                     box.position.set(_x, _y, _z);
-                    box.body = physics.generatePhysicsBody(box, 'rigid', { mass: 4 });
+                    box.body = physics.generatePhysicsBody(box, { mass: 4 });
 
                     scene.add(box);
                     world.addRigidBody(box.body);

@@ -648,9 +648,9 @@ let PhysicsEngine = (function () {
         }
     };
 
-    PhysicsEngine.prototype.generatePhysicsBodyFromModel = function (model, type, params) {
+    PhysicsEngine.prototype.generatePhysicsBodyFromModel = function (model, params, type) {
 
-        let collisionShape = new THREE.Group();
+        let collisionGroup = new THREE.Group();
 
         model.traverse((child) => {
             if (child.hasOwnProperty('userData')) {
@@ -660,14 +660,14 @@ let PhysicsEngine = (function () {
 
                         child.visible = visible || false;
 
-                        collisionShape.add(child.clone());
+                        collisionGroup.add(child.clone());
 
                     }
                 }
             }
         });
 
-        return this.generatePhysicsBody(collisionShape, type, params);
+        return this.generatePhysicsBody(collisionGroup, params, type);
     }
 
     /**
@@ -675,173 +675,168 @@ let PhysicsEngine = (function () {
      * @param {Mesh} mesh
      * @param {Object} params the info to create the physics body on
      */
-    PhysicsEngine.prototype.generatePhysicsBody = function (mesh, type, params) {
-        let mass = params.mass || 0;
-        let restitution = params.restitution || 0.4;
-        let friction = params.friction || 0.8;
-
+    PhysicsEngine.prototype.generatePhysicsBody = function (mesh, params, type) {
+        
         let collisionShape = new THREE.Group();
-
+        
         mesh.traverse((child) => {
             if (child.hasOwnProperty('userData')) {
-
+                
                 if (child.userData.hasOwnProperty('data')) {
                     if (child.userData.data == 'collision' || child.userData.data == 'physics') {
-
+                        
                         child.visible = params.visible || false;
 
                         collisionShape.add(child.clone());
-
+                        
                     }
                 }
             }
         });
-
+        
         if (collisionShape.children.length !== 0) {
             mesh = collisionShape;
         }
-
-        let colShape = this._createShape(mesh, false);
-
+        
+        let colShape = this._createShape(mesh, false, type);
+        return this._createBody(colShape, mesh, params);
+    }
+    
+    PhysicsEngine.prototype._createBody = function(colShape, mesh, params){
+        let mass = params.mass || 0;
+        let restitution = params.restitution || 0.4;
+        let friction = params.friction || 0.8;
+        
         let body;
 
-        switch (type) {
-            case 'soft':
-                console.warn('SoftBody is not currently supported');
-                break;
+        let transform = new Ammo.btTransform();
+        transform.setIdentity();
+        transform.setOrigin(new Ammo.btVector3(mesh.position.x, mesh.position.y, mesh.position.z));
+        transform.setRotation(new Ammo.btQuaternion(mesh.quaternion.x, mesh.quaternion.y, mesh.quaternion.z, mesh.quaternion.w));
 
-            case 'rigid':
-                let transform = new Ammo.btTransform();
-                transform.setIdentity();
-                transform.setOrigin(new Ammo.btVector3(mesh.position.x, mesh.position.y, mesh.position.z));
-                transform.setRotation(new Ammo.btQuaternion(mesh.quaternion.x, mesh.quaternion.y, mesh.quaternion.z, mesh.quaternion.w));
+        let motionState = new Ammo.btDefaultMotionState(transform);
 
-                let motionState = new Ammo.btDefaultMotionState(transform);
+        let localInertia = new Ammo.btVector3(0, 0, 0);
 
-                let localInertia = new Ammo.btVector3(0, 0, 0);
-
-                if (mass !== 0) {
-                    colShape.calculateLocalInertia(mass, localInertia);
-                }
-
-                let rbInfo = new Ammo.btRigidBodyConstructionInfo(mass, motionState, colShape, localInertia);
-                body = new Ammo.btRigidBody(rbInfo);
-                body.setRestitution(restitution);
-                body.setFriction(friction);
-
-                break;
+        if (mass !== 0) {
+            colShape.calculateLocalInertia(mass, localInertia);
         }
+
+        let rbInfo = new Ammo.btRigidBodyConstructionInfo(mass, motionState, colShape, localInertia);
+        body = new Ammo.btRigidBody(rbInfo);
+        body.setRestitution(restitution);
+        body.setFriction(friction);
 
         return body;
     }
-	
-	PhysicsEngine.prototype.generateHeightFieldFromImage = function (img, width, depth, minHeight, maxHeight){
-				
-		let _canvas = document.createElement('canvas'),
-		ctx = _canvas.getContext('2d');
-		
-		_canvas.width = width;
-		_canvas.height = depth;
-		ctx.drawImage(img, 0, 0, width, depth);
-		
-		const data = ctx.getImageData(0, 0, width, depth).data;
-		
-		let imageData = new Float32Array(width * depth);
-		
-		for (let i = 0; i < imageData.length; i++) {
-			
-			imageData[i] = data[4 * i] / 255;
-			
-		}
-		
-		return this.generateHeightField(imageData, width, depth, minHeight, maxHeight);
-	}
-	
-	PhysicsEngine.prototype.generateHeightField = function (data, width, depth, minHeight, maxHeight){
-	
-	let hRange = maxHeight - minHeight;
-	
-	let geometry = new THREE.PlaneBufferGeometry( width, depth, width - 1, depth - 1 );
-	geometry.rotateX( - Math.PI / 2 );
 
-	let vertices = geometry.attributes.position.array;
+    PhysicsEngine.prototype.generateHeightFieldFromImage = function (img, width, depth, minHeight, maxHeight) {
 
-	for ( var i = 0, j = 0, l = vertices.length; i < l; i ++, j += 3 ) {
+        let _canvas = document.createElement('canvas'),
+            ctx = _canvas.getContext('2d');
 
-		// j + 1 because it is the y component that we modify
-		vertices[ j + 1 ] = data[ i ] * hRange - hRange / 2;;
+        _canvas.width = width;
+        _canvas.height = depth;
+        ctx.drawImage(img, 0, 0, width, depth);
 
-	}
-	geometry.computeVertexNormals();
-	
-	let groundMaterial = new THREE.MeshPhongMaterial( { color: 0xC7C7C7 } );
-	let mesh = new THREE.Mesh( geometry, groundMaterial );
-	mesh.receiveShadow = true;
-	//mesh.castShadow = true;
-	
-	
-	// This parameter is not really used, since we are using PHY_FLOAT height data type and hence it is ignored
-	const heightScale = 1.0;
-	
-	// Up axis = 0 for X, 1 for Y, 2 for Z. Normally 1 = Y is used.
-	const upAxis = 1.0;
-	
-	// height data type. "PHY_FLOAT" is used. Possible values are "PHY_FLOAT", "PHY_UCHAR", "PHY_SHORT"
-	const heightDataType = 'PHY_FLOAT';
-	
-	// Set this to your needs (inverts the triangles)
-	const flipQuadEdges = false;	
-	
-	// Creates height data buffer in Ammo heap
-	let ammoHeightData = Ammo._malloc(4.0 * width * depth);
+        const data = ctx.getImageData(0, 0, width, depth).data;
 
-	// Copy the javascript height data array to the Ammo one.
-	let p = 0;
-	let p2 = 0;
-	
-	for ( let j = 0; j < depth; j ++ ) {
-		for ( let i = 0; i < width; i ++ ) {
-			
-			let height = data[ p ] * hRange + minHeight;
+        let imageData = new Float32Array(width * depth);
 
-			// write 32-bit float data to memory
-			Ammo.HEAPF32[ ammoHeightData + p2 >> 2 ] = height;
+        for (let i = 0; i < imageData.length; i++) {
 
-			p ++;
+            imageData[i] = data[4 * i] / 255;
 
-			// 4 bytes/float
-			p2 += 4;
-		}
-	}
-	
-	let heightFieldShape = new Ammo.btHeightfieldTerrainShape(width, depth, ammoHeightData, heightScale, minHeight, maxHeight, upAxis, heightDataType, flipQuadEdges);
-	
-	let mass = 0;
-	
-	let transform = new Ammo.btTransform();
-	transform.setIdentity();
-	transform.setOrigin(new Ammo.btVector3(0, (maxHeight + minHeight) / 2, 0));
-	transform.setRotation(new Ammo.btQuaternion(0, 0, 0, 1));
-	let motionState = new Ammo.btDefaultMotionState(transform);
-	let localInertia = new Ammo.btVector3(0, 0, 0);
+        }
 
-	if (mass !== 0) {
-		heightFieldShape.calculateLocalInertia(mass, localInertia);
-	}
+        return this.generateHeightField(imageData, width, depth, minHeight, maxHeight);
+    }
 
-	let rbInfo = new Ammo.btRigidBodyConstructionInfo(mass, motionState, heightFieldShape, localInertia);
-	let body = new Ammo.btRigidBody(rbInfo);
-	// body.setRestitution(restitution);
-	// body.setFriction(friction);
+    PhysicsEngine.prototype.generateHeightField = function (data, width, depth, minHeight, maxHeight) {
 
-	mesh.body = body;
-	return mesh;
+        let hRange = maxHeight - minHeight;
 
-	/* return {
-		mesh,
-		body
-	}; */
-}
+        let geometry = new THREE.PlaneBufferGeometry(width, depth, width - 1, depth - 1);
+        geometry.rotateX(- Math.PI / 2);
+
+        let vertices = geometry.attributes.position.array;
+
+        for (var i = 0, j = 0, l = vertices.length; i < l; i++, j += 3) {
+
+            // j + 1 because it is the y component that we modify
+            vertices[j + 1] = data[i] * hRange - hRange / 2;;
+
+        }
+        geometry.computeVertexNormals();
+
+        let groundMaterial = new THREE.MeshPhongMaterial({ color: 0xC7C7C7 });
+        let mesh = new THREE.Mesh(geometry, groundMaterial);
+        mesh.receiveShadow = true;
+        //mesh.castShadow = true;
+
+
+        // This parameter is not really used, since we are using PHY_FLOAT height data type and hence it is ignored
+        const heightScale = 1.0;
+
+        // Up axis = 0 for X, 1 for Y, 2 for Z. Normally 1 = Y is used.
+        const upAxis = 1.0;
+
+        // height data type. "PHY_FLOAT" is used. Possible values are "PHY_FLOAT", "PHY_UCHAR", "PHY_SHORT"
+        const heightDataType = 'PHY_FLOAT';
+
+        // Set this to your needs (inverts the triangles)
+        const flipQuadEdges = false;
+
+        // Creates height data buffer in Ammo heap
+        let ammoHeightData = Ammo._malloc(4.0 * width * depth);
+
+        // Copy the javascript height data array to the Ammo one.
+        let p = 0;
+        let p2 = 0;
+
+        for (let j = 0; j < depth; j++) {
+            for (let i = 0; i < width; i++) {
+
+                let height = data[p] * hRange + minHeight;
+
+                // write 32-bit float data to memory
+                Ammo.HEAPF32[ammoHeightData + p2 >> 2] = height;
+
+                p++;
+
+                // 4 bytes/float
+                p2 += 4;
+            }
+        }
+
+        let heightFieldShape = new Ammo.btHeightfieldTerrainShape(width, depth, ammoHeightData, heightScale, minHeight, maxHeight, upAxis, heightDataType, flipQuadEdges);
+
+        let mass = 0;
+
+        let transform = new Ammo.btTransform();
+        transform.setIdentity();
+        transform.setOrigin(new Ammo.btVector3(0, (maxHeight + minHeight) / 2, 0));
+        transform.setRotation(new Ammo.btQuaternion(0, 0, 0, 1));
+        let motionState = new Ammo.btDefaultMotionState(transform);
+        let localInertia = new Ammo.btVector3(0, 0, 0);
+
+        if (mass !== 0) {
+            heightFieldShape.calculateLocalInertia(mass, localInertia);
+        }
+
+        let rbInfo = new Ammo.btRigidBodyConstructionInfo(mass, motionState, heightFieldShape, localInertia);
+        let body = new Ammo.btRigidBody(rbInfo);
+        // body.setRestitution(restitution);
+        // body.setFriction(friction);
+
+        mesh.body = body;
+        return mesh;
+
+        /* return {
+            mesh,
+            body
+        }; */
+    }
 
     // adds all verticies (including child verticies) to the convex hull shape
     PhysicsEngine.prototype._addHullVerts = function (btConvexHullShape, topLevelMesh, mesh) {
@@ -877,7 +872,7 @@ let PhysicsEngine = (function () {
      * @param {Object3D} object
      * @param {Boolean} ignoreChildren whether to ignore the children
     */
-    PhysicsEngine.prototype._createShape = function (object, ignoreChildren) {
+    PhysicsEngine.prototype._createShape = function (object, ignoreChildren, type) {
 
         let returnShape;
 
@@ -959,21 +954,160 @@ let PhysicsEngine = (function () {
                     break;
             }
         } else {
-            // ConvexHull
 
-            let convexShape = new Ammo.btConvexHullShape();
-            let triangleCount = this._addHullVerts(convexShape, object, object);
-            if (triangleCount == 0) {
-                // Cleanup Unused Convex Hull Shape
-                returnShape = new Ammo.btCompoundShape();
-            }
-            else {
-                returnShape = convexShape;
+            switch (type) {
+                case 'convex':
+                    // ConvexHull
+
+                    let convexShape = new Ammo.btConvexHullShape();
+                    let triangleCount = this._addHullVerts(convexShape, object, object);
+                    if (triangleCount == 0) {
+                        // Cleanup Unused Convex Hull Shape
+                        returnShape = new Ammo.btCompoundShape();
+                    }
+                    else {
+                        returnShape = convexShape;
+                    }
+                    break;
+
+                case 'trimesh':
+
+                    // Trimesh
+
+                    returnShape = this._getTrimeshFromMesh(object);
+                    break;
             }
 
-            returnShape.setMargin(0.01);
+            // returnShape.setMargin(0.01);
         }
         return returnShape;
+    }
+
+    /* Setup (Triangle Mesh) ---------- */
+
+    /* get the appropriate evaluated mesh based on rigid body mesh source */
+    PhysicsEngine.prototype.rigidbody_get_mesh = function (ob) {
+
+        const index = ob.geometry.index !== null ? ob.geometry.index : undefined;
+        const attributes = ob.geometry.attributes;
+        const scale = ob.scale;
+
+        if (attributes.position === undefined) {
+
+            console.error('THREE.Geometry.fromBufferGeometry(): Position attribute required for conversion.');
+            return;
+
+        }
+
+        const position = attributes.position;
+
+        let vertices = [];
+        let faces = [];
+
+        for (let i = 0; i < position.count; i++) {
+
+            vertices.push({
+                x: scale.x * position.getX(i),
+                y: scale.y * position.getY(i),
+                z: scale.z * position.getZ(i)
+            });
+
+        }
+
+        if (index !== undefined) {
+
+            for (let i = 0; i < index.count; i += 3) {
+
+                faces.push({
+                    a: index.getX(i),
+                    b: index.getX(i + 1),
+                    c: index.getX(i + 2)
+                });
+
+            }
+
+        } else {
+
+            for (let i = 0; i < position.count; i += 3) {
+
+                faces.push({
+                    a: i,
+                    b: i + 1,
+                    c: i + 2
+                });
+
+            }
+        }
+
+        return {
+            vertices,
+            faces
+        }
+    }
+
+    PhysicsEngine.prototype._getTrimeshFromMesh = function (ob) {
+
+        let shape = null; /* rbCollisionShape */
+        let faces, vertices;
+        let totvert = 0;
+
+        if (ob.type == 'Mesh') {
+
+            let mesh = this.rigidbody_get_mesh(ob);
+
+            faces = mesh.faces;
+            vertices = mesh.vertices;
+
+            totvert = vertices.length;
+
+        }
+        else {
+            console.error("cannot make Convex Hull collision shape for non-Mesh object");
+        }
+
+        if (totvert == 0) {
+            console.error("no vertices to define Convex Hull collision shape with");
+        }
+
+        /* vertices, faces */
+        shape = new Ammo.btCompoundShape();
+
+        let ammoMesh = new Ammo.btTriangleMesh(true, true);
+
+        for (let i = 0, l = faces.length; i < l; i++) {
+            let a = faces[i].a;
+            let b = faces[i].b;
+            let c = faces[i].c;
+            ammoMesh.addTriangle(
+                new Ammo.btVector3(vertices[a].x, vertices[a].y, vertices[a].z),
+                new Ammo.btVector3(vertices[b].x, vertices[b].y, vertices[b].z),
+                new Ammo.btVector3(vertices[c].x, vertices[c].y, vertices[c].z),
+                false
+            );
+        }
+
+        let triMeshShape = new Ammo.btBvhTriangleMeshShape(ammoMesh, true, true);
+
+        let transform = new Ammo.btTransform();
+        transform.setIdentity();
+        let origin = transform.getOrigin();
+        origin.setValue(0, 0, 0);
+        let ammoQuat = new Ammo.btQuaternion();
+        ammoQuat.setValue(0, 0, 0, 1);
+        transform.setRotation(ammoQuat);
+
+        /* triangle-mesh we create is a BVH wrapper for triangle mesh data (for faster lookups) */
+        // RB_TODO perhaps we need to allow saving out this for performance when rebuilding?
+        // bvh = Bounding Volume Hierarchy
+        shape.addChildShape(transform, triMeshShape);
+
+        return shape;
+
+    }
+
+    PhysicsEngine.prototype.newTrimesh = function(object, params){
+        let shape = this._getTrimeshFromMesh(object);
+        return this._createBody(shape, object, params);
     }
 
     PhysicsEngine.prototype.addConstraint = function (mainBody, connectedBody, type, constraintData) {
