@@ -47,7 +47,7 @@
 		createCylinder();
 
 		(function () {
-			let texture = textureLoader.load("assert/texture/grid.png");
+			let texture = textureLoader.load("asset/texture/grid.png");
 			texture.wrapS = THREE.RepeatWrapping;
 			texture.wrapT = THREE.RepeatWrapping;
 			texture.repeat.set(200, 200);
@@ -83,7 +83,7 @@
 
 				// console.log(heightField);
 			}
-			img.src = "assert/texture/heightfield.png";
+			img.src = "asset/texture/heightfield.png";
 
 		})();
 
@@ -102,8 +102,8 @@
 		})//();
 
 		gltfLoader.load(
-			// "assert/gltf/slope.glb",
-			"assert/bridge.glb",
+			// "asset/gltf/slope.glb",
+			"asset/bridge.glb",
 			(glb) => {
 				// console.log(glb);
 
