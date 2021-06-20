@@ -1,2 +1,2 @@
 # oliverxh.github.io
-My site
+一种乐趣
