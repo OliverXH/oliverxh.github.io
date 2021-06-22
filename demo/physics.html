@@ -173,7 +173,7 @@
             );
             scene.add(ground);
             ground.receiveShadow = true;
-            ground.userData.body = new Bullet.RigidBody({
+            new Bullet.RigidBody(ground, {
                 mass: 0,
                 shape: Bullet.Shape.CreateShape(ground)
             });
@@ -197,7 +197,7 @@
             box.castShadow = true;
             scene.add(box);
             objects.push(box);
-            box.userData.body = new Bullet.RigidBody({
+            new Bullet.RigidBody(box, {
                 shape: Bullet.Shape.CreateShape(box),
             });
             box.userData.body.position = new Bullet.Vec3(0, 15, 0);
@@ -212,7 +212,7 @@
             sphere.castShadow = true;
             scene.add(sphere);
             objects.push(sphere);
-            sphere.userData.body = new Bullet.RigidBody({
+            new Bullet.RigidBody(sphere, {
                 shape: Bullet.Shape.CreateShape(sphere),
                 position: new Bullet.Vec3(1, 10, 0)
             }).addToWorld(physicsWorld);
@@ -227,7 +227,7 @@
             cylinder.castShadow = true;
             scene.add(cylinder);
             objects.push(cylinder);
-            cylinder.userData.body = new Bullet.RigidBody({
+            new Bullet.RigidBody(cylinder, {
                 shape: Bullet.Shape.CreateShape(cylinder),
                 position: new Bullet.Vec3(-1, 14, 0)
             });
@@ -242,7 +242,7 @@
             cone.castShadow = true;
             scene.add(cone);
             objects.push(cone);
-            cone.userData.body = new Bullet.RigidBody({
+            new Bullet.RigidBody(cone, {
                 shape: Bullet.Shape.CreateShape(cone),
                 position: new Bullet.Vec3(-1, 14, 0)
             }).addToWorld(physicsWorld);
@@ -274,7 +274,7 @@
 
                                 objects.push(child);
 
-                                child.userData.body = new Bullet.RigidBody({
+                                new Bullet.RigidBody(child, {
                                     shape: Bullet.Shape.CreateShape(child, asset.type),
                                     position: new Bullet.Vec3(-3, 6 + 5 * Math.random(), 0)
                                 }).addToWorld(physicsWorld);
@@ -317,18 +317,6 @@
 
             // Step world
             physicsWorld.step(deltaTime, 10);
-
-            let tmpTrans = new Ammo.btTransform();
-
-            // Update rigid bodies
-            for (let i = 0, il = objects.length; i < il; i++) {
-
-                const objThree = objects[i];
-                const objPhys = objThree.userData.body;
-
-                objPhys.update(objThree);
-
-            }
 
         }
 
