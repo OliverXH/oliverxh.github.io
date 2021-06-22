@@ -25,6 +25,10 @@ class Vec3 {
         return target;
     }
 
+    equals(vector) {
+        return this.x === vector.x && this.y === vector.y && this.z === vector.z;
+    }
+
     /**
      * Set the vectors' 3 elements
      */
@@ -127,68 +131,6 @@ Vec3.ZERO = new Vec3(0, 0, 0);
 Vec3.UNIT_X = new Vec3(1, 0, 0);
 Vec3.UNIT_Y = new Vec3(0, 1, 0);
 Vec3.UNIT_Z = new Vec3(0, 0, 1);
-
-class World {
-
-    constructor(options = {}) {
-
-        const _collisionConfiguration = new Ammo.btDefaultCollisionConfiguration(),
-
-            _dispatcher = new Ammo.btCollisionDispatcher(_collisionConfiguration),
-            //  btGImpactCollisionAlgorithm::registerAlgorithm((btCollisionDispatcher *)world->dispatcher);
-
-            _pairCache = new Ammo.btDbvtBroadphase(),
-
-            // world.filterCallback = new rbFilterCallback();
-            // world.pairCache.getOverlappingPairCache().setOverlapFilterCallback(world.filterCallback);
-
-            /* constraint solving */
-            _constraintSolver = new Ammo.btSequentialImpulseConstraintSolver();
-
-
-        /* world */
-        this._dynamicsWorld = new Ammo.btDiscreteDynamicsWorld(_dispatcher, _pairCache, _constraintSolver, _collisionConfiguration);
-
-        this._gravity = new Vec3();
-
-        this.gravity = options.gravity !== undefined ? options.gravity : new Vec3(0, -9.82, 0);
-
-        this._bodies = [];
-
-    }
-
-    get gravity() {
-        return this._gravity;
-    }
-
-    set gravity(gravity) {
-        this._gravity.copy(gravity);
-        this._dynamicsWorld.setGravity(new Ammo.btVector3(gravity.x, gravity.y, gravity.z));
-    }
-
-    addBody(body) {
-        this._bodies.push(body);
-        this._dynamicsWorld.addRigidBody(body._body);
-    }
-
-    removeBody(body) {
-        let index = this._bodies.indexOf(body);
-        this._bodies.splice(index, 1);
-
-        this._dynamicsWorld.removeRigidBody(body);
-    }
-
-    step(timeStep, maxSubSteps = 1, fixedTimeStep = 1 / 60) {
-
-        this._dynamicsWorld.stepSimulation(timeStep, maxSubSteps, fixedTimeStep);
-
-    }
-
-}
-
-const ACTIVE_TAG = 1;
-const DISABLE_DEACTIVATION = 4;
-const BODYTYPE_KINEMATIC = 'kinematic';
 
 class Quaternion {
 
@@ -343,20 +285,181 @@ class Quaternion {
 
 }
 
-class RigidBody {
+class World {
 
     constructor(options = {}) {
+
+        const _collisionConfiguration = new Ammo.btDefaultCollisionConfiguration(),
+
+            _dispatcher = new Ammo.btCollisionDispatcher(_collisionConfiguration),
+            //  btGImpactCollisionAlgorithm::registerAlgorithm((btCollisionDispatcher *)world->dispatcher);
+
+            _pairCache = new Ammo.btDbvtBroadphase(),
+
+            // world.filterCallback = new rbFilterCallback();
+            // world.pairCache.getOverlappingPairCache().setOverlapFilterCallback(world.filterCallback);
+
+            /* constraint solving */
+            _constraintSolver = new Ammo.btSequentialImpulseConstraintSolver();
+
+
+        /* world */
+        this._dynamicsWorld = new Ammo.btDiscreteDynamicsWorld(_dispatcher, _pairCache, _constraintSolver, _collisionConfiguration);
+
+        this._gravity = new Vec3();
+
+        this.gravity = options.gravity !== undefined ? options.gravity : new Vec3(0, -9.82, 0);
+
+        this.bodies = [];
+
+    }
+
+    /**
+     * Gravity
+     */
+    get gravity() {
+        return this._gravity;
+    }
+
+    set gravity(gravity) {
+        this._gravity.copy(gravity);
+        this._dynamicsWorld.setGravity(new Ammo.btVector3(gravity.x, gravity.y, gravity.z));
+    }
+
+    /**
+     * RigidBody
+     */
+    addBody(body) {
+
+        body.createBody();
+
+        this.bodies.push(body);
+        this._dynamicsWorld.addRigidBody(body._body);
+    }
+
+    removeBody(body) {
+        let index = this.bodies.indexOf(body);
+        this.bodies.splice(index, 1);
+
+        this._dynamicsWorld.removeRigidBody(body._body);
+    }
+
+    /**
+     * Constraint
+     */
+    addJoint(joint, disableCollisionsBetweenLinkedBodies = false) {
+        this._dynamicsWorld.addConstraint(joint._constraint, disableCollisionsBetweenLinkedBodies);
+    }
+
+    removeJoint(joint) {
+        this._dynamicsWorld.removeConstraint(joint._constraint);
+    }
+
+    /**
+     * Action
+     */
+    addAction(action) {
+        this._dynamicsWorld.addAction(action);
+    }
+
+    removeAction(action) {
+        this._dynamicsWorld.removeAction(action);
+    }
+
+    /**
+     * Simulation
+     */
+    step(timeStep, maxSubSteps = 1, fixedTimeStep = 1 / 60) {
+
+        this._dynamicsWorld.stepSimulation(timeStep, maxSubSteps, fixedTimeStep);
+
+        for (let i = 0, il = this.bodies.length; i < il; i++) {
+
+            const objPhys = this.bodies[i];
+            const objThree = objPhys.entity;
+
+            objPhys.update(objThree);
+
+        }
+
+    }
+
+}
+
+const BODYTYPE_STATIC = 'static';
+const BODYTYPE_DYNAMIC = 'dynamic';
+const BODYTYPE_KINEMATIC = 'kinematic';
+const BODYFLAG_KINEMATIC_OBJECT = 2;
+const BODYSTATE_DISABLE_DEACTIVATION = 4;
+const BODYGROUP_DYNAMIC = 1;
+const BODYGROUP_STATIC = 2;
+const BODYGROUP_KINEMATIC = 4;
+
+class RigidBody {
+
+    constructor(entity, options = {}) {
+
+        this.entity = entity;
+
+        entity.userData.body = this;
 
         this._body = null;
         this._mass = options.mass !== undefined ? options.mass : 1;
 
-        this._shape = options.shape !== undefined ? options.shape._shape : null;
+        this._type = BODYTYPE_STATIC;
+
+        this._friction = 0.5;
+        this._restitution = 0;
+
+        let shape = options.shape !== undefined ? options.shape : null;
+        this._shape = shape._shape;
 
         this._position = options.position !== undefined ? options.position : new Vec3();
         this._quaternion = options.quaternion !== undefined ? options.quaternion : new Quaternion();
 
-        this._createBody();
+        this._angularDamping = 0;
+        this._angularFactor = new Vec3(1, 1, 1);
+        this._angularVelocity = new Vec3();
 
+        this._linearDamping = 0;
+        this._linearFactor = new Vec3(1, 1, 1);
+        this._linearVelocity = new Vec3();
+
+        this._type = BODYTYPE_DYNAMIC;
+
+    }
+
+
+    get type() {
+        return this._type;
+    }
+
+    set type(type) {
+        if (this._type !== type) {
+            this._type = type;
+
+            // this.disableSimulation();
+
+            // set group and mask to defaults for type
+            switch (type) {
+                case BODYTYPE_DYNAMIC:
+                    this._group = BODYGROUP_DYNAMIC;
+                    // this._mask = BODYMASK_ALL;
+                    break;
+                case BODYTYPE_KINEMATIC:
+                    this._group = BODYGROUP_KINEMATIC;
+                    // this._mask = BODYMASK_ALL;
+                    break;
+                case BODYTYPE_STATIC:
+                default:
+                    this._group = BODYGROUP_STATIC;
+                    // this._mask = BODYMASK_NOT_STATIC;
+                    break;
+            }
+
+            // Create a new body
+            // this.createBody();
+        }
     }
 
 
@@ -368,18 +471,26 @@ class RigidBody {
         if (this._mass !== mass) {
             this._mass = mass;
 
-            let localInertia = new Ammo.btVector3(0, 0, 0);
+            if (this._body && this._type === BODYTYPE_DYNAMIC) {
+                const enabled = this.enabled && this.entity.enabled;
+                if (enabled) {
+                    this.disableSimulation();
+                }
 
-            /* calculate new inertia if non-zero mass */
-            if (mass) {
-                this._body.getCollisionShape().calculateLocalInertia(mass, localInertia);
+                let localInertia = new Ammo.btVector3(0, 0, 0);
+
+                if (mass)
+                    /* calculate new inertia if non-zero mass */
+                    // calculateLocalInertia writes local inertia to localInertia here...
+                    this._body.getCollisionShape().calculateLocalInertia(mass, localInertia);
+
+                // ...and then writes the calculated local inertia to the body
+                this._body.setMassProps(mass, localInertia);
+                this._body.updateInertiaTensor();
             }
-
-            this._body.setMassProps(mass, localInertia);
-            this._body.updateInertiaTensor();
-
         }
     }
+
 
     get position() {
         return this._position;
@@ -389,20 +500,172 @@ class RigidBody {
 
         this._position.copy(pos);
 
-        let rot = this._body.getWorldTransform().getRotation();
+        // let rot = new Ammo.btQuaternion();
+        if (this._body) {
+            rot = this._body.getWorldTransform().getRotation();
 
-        let trans = new Ammo.btTransform();
-        trans.setIdentity();
-        trans.setOrigin(new Ammo.btVector3(pos.x, pos.y, pos.z));
-        trans.setRotation(rot);
+            let trans = new Ammo.btTransform();
+            trans.setIdentity();
+            trans.setOrigin(new Ammo.btVector3(pos.x, pos.y, pos.z));
+            trans.setRotation(rot);
 
-        this._body.setWorldTransform(trans);
+            this._body.setWorldTransform(trans);
 
-        if (this._type === BODYTYPE_KINEMATIC) {
-            const ms = this._body.getMotionState();
-            if (ms) {
-                ms.setWorldTransform(trans);
+            if (this.mass == 0 || this._type === BODYTYPE_KINEMATIC) {
+                const ms = this._body.getMotionState();
+                if (ms) {
+                    ms.setWorldTransform(trans);
+                }
             }
+        }
+
+    }
+
+    get quaternion() {
+        return this._quaternion;
+    }
+
+
+    // -------------
+
+    get angularDamping() {
+        return this._angularDamping;
+    }
+
+    set angularDamping(damping) {
+        if (this._angularDamping !== damping) {
+            this._angularDamping = damping;
+
+            if (this._body) {
+                this._body.setDamping(this._linearDamping, damping);
+            }
+        }
+    }
+
+
+    get angularFactor() {
+        return this._angularFactor;
+    }
+
+    set angularFactor(factor) {
+        if (!this._angularFactor.equals(factor)) {
+            this._angularFactor.copy(factor);
+
+            if (this._body && this._type === BODYTYPE_DYNAMIC) {
+                let vec = new Ammo.btVector3(factor.x, factor.y, factor.z);
+                this._body.setAngularFactor(vec);
+            }
+        }
+    }
+
+
+    get angularVelocity() {
+        if (this._body && this._type === BODYTYPE_DYNAMIC) {
+            const velocity = this._body.getAngularVelocity();
+            this._angularVelocity.set(velocity.x(), velocity.y(), velocity.z());
+        }
+        return this._angularVelocity;
+    }
+
+    set angularVelocity(velocity) {
+        if (this._body && this._type === BODYTYPE_DYNAMIC) {
+            this._body.activate();
+
+            let vec = new Ammo.btVector3(velocity.x, velocity.y, velocity.z);
+            this._body.setAngularVelocity(vec);
+
+            this._angularVelocity.copy(velocity);
+        }
+    }
+
+
+    get linearDamping() {
+        return this._linearDamping;
+    }
+
+    set linearDamping(damping) {
+        if (this._linearDamping !== damping) {
+            this._linearDamping = damping;
+
+            if (this._body) {
+                this._body.setDamping(damping, this._angularDamping);
+            }
+        }
+    }
+
+    get linearFactor() {
+        return this._linearFactor;
+    }
+
+    set linearFactor(factor) {
+        if (!this._linearFactor.equals(factor)) {
+            this._linearFactor.copy(factor);
+
+            if (this._body && this._type === BODYTYPE_DYNAMIC) {
+                let vec = new Ammo.btVector3(factor.x, factor.y, factor.z);
+                this._body.setLinearFactor(vec);
+            }
+        }
+    }
+
+    get linearVelocity() {
+        if (this._body && this._type === BODYTYPE_DYNAMIC) {
+            const velocity = this._body.getLinearVelocity();
+            this._linearVelocity.set(velocity.x(), velocity.y(), velocity.z());
+        }
+        return this._linearVelocity;
+    }
+
+    set linearVelocity(velocity) {
+        if (this._body && this._type === BODYTYPE_DYNAMIC) {
+            this._body.activate();
+
+            let vec = new Ammo.btVector3(velocity.x, velocity.y, velocity.z);
+            this._body.setLinearVelocity(vec);
+
+            this._linearVelocity.copy(velocity);
+        }
+    }
+
+
+    get friction() {
+        return this._friction;
+    }
+
+    set friction(friction) {
+        if (this._friction !== friction) {
+            this._friction = friction;
+
+            if (this._body) {
+                this._body.setFriction(friction);
+            }
+        }
+    }
+
+
+    get restitution() {
+        return this._restitution;
+    }
+
+    set restitution(restitution) {
+        if (this._restitution !== restitution) {
+            this._restitution = restitution;
+
+            if (this._body) {
+                this._body.setRestitution(restitution);
+            }
+        }
+    }
+
+    setKinematic(kinematic) {
+
+        let body = this._body;
+
+        if (kinematic) {
+            body.setCollisionFlags(body.getCollisionFlags() | CF_KINEMATIC_OBJECT);
+        }
+        else {
+            body.setCollisionFlags(body.getCollisionFlags() & ~CF_KINEMATIC_OBJECT);
         }
 
     }
@@ -422,6 +685,42 @@ class RigidBody {
         }
     }
 
+    /**
+     * @private
+     * @function
+     * @name RigidBodyComponent#_getEntityTransform
+     * @description Writes an entity transform into an Ammo.btTransform but ignoring scale.
+     * @return {object} transform - The ammo transform to write the entity transform to.
+     */
+    _getEntityTransform() {
+
+        let transform = new Ammo.btTransform();
+        transform.setIdentity();
+
+        const entity = this.entity;
+        const pos = entity.position;
+        const rot = entity.rotation;
+
+        transform.setOrigin(new Ammo.btVector3(pos.x, pos.y, pos.z));
+        transform.setRotation(new Ammo.btQuaternion(rot.x, rot.y, rot.z, rot.w));
+
+        return transform;
+
+    }
+
+    _getTransform() {
+        let transform = new Ammo.btTransform();
+        transform.setIdentity();
+
+        const pos = this.position;
+        const rot = this.quaternion;
+
+        transform.setOrigin(new Ammo.btVector3(pos.x, pos.y, pos.z));
+        transform.setRotation(new Ammo.btQuaternion(rot.x, rot.y, rot.z, rot.w));
+
+        return transform;
+    }
+
     _setActivationState(use_deactivation) {
         if (use_deactivation) {
             this._body.forceActivationState(ACTIVE_TAG);
@@ -435,23 +734,66 @@ class RigidBody {
         this._body.setActivationState(newState);
     }
 
-    _createBody() {
 
-        let trans = new Ammo.btTransform();
-        trans.setIdentity();
-        trans.setOrigin(new Ammo.btVector3(this._position.x, this._position.y, this._position.z));
-        trans.setRotation(new Ammo.btQuaternion(this._quaternion.x, this._quaternion.y, this._quaternion.z, this._quaternion.w));
-        let motionState = new Ammo.btDefaultMotionState(trans);
+    /**
+     * @private
+     * @function
+     * @name RigidBodyComponent#createBody
+     * @description If the Entity has a Collision shape attached then create 
+     * a rigid body using this shape. This method destroys the existing body.
+     */
+    createBody() {
+        const entity = this.entity;
+        let shape = this._shape;
 
-        const localInertia = new Ammo.btVector3(0, 0, 0);
-        if (this._mass !== 0) {
-            this._shape.setMargin(0.05);
-            this._shape.calculateLocalInertia(this._mass, localInertia);
+        if (shape) {
+            // if (this._body)
+            // this.system.onRemove(entity, this);
+
+            const mass = this._type === BODYTYPE_DYNAMIC ? this._mass : 0;
+
+            let transform = this._getTransform();
+
+            // const body = this.system.createBody(mass, shape, transform);
+            // crete body
+            const localInertia = new Ammo.btVector3(0, 0, 0);
+            if (mass !== 0) {
+                shape.calculateLocalInertia(mass, localInertia);
+            }
+
+            const motionState = new Ammo.btDefaultMotionState(transform);
+            const bodyInfo = new Ammo.btRigidBodyConstructionInfo(mass, motionState, shape, localInertia);
+            const body = new Ammo.btRigidBody(bodyInfo);
+            Ammo.destroy(bodyInfo);
+            Ammo.destroy(localInertia);
+
+            body.setRestitution(this._restitution);
+            body.setFriction(this._friction);
+            body.setRollingFriction(this._rollingFriction);
+            body.setDamping(this._linearDamping, this._angularDamping);
+
+            let vec = new Ammo.btVector3();
+
+            if (this._type === BODYTYPE_DYNAMIC) {
+                const linearFactor = this._linearFactor;
+                vec.setValue(linearFactor.x, linearFactor.y, linearFactor.z);
+                body.setLinearFactor(vec);
+
+                const angularFactor = this._angularFactor;
+                vec.setValue(angularFactor.x, angularFactor.y, angularFactor.z);
+                body.setAngularFactor(vec);
+            } else if (this._type === BODYTYPE_KINEMATIC) {
+                body.setCollisionFlags(body.getCollisionFlags() | BODYFLAG_KINEMATIC_OBJECT);
+                body.setActivationState(BODYSTATE_DISABLE_DEACTIVATION);
+            }
+
+            body.entity = entity;
+
+            this._body = body;
+
+            if (this.enabled && entity.enabled) ;
+
         }
-
-        let rbInfo = new Ammo.btRigidBodyConstructionInfo(this._mass, motionState, this._shape, localInertia);
-        this._body = new Ammo.btRigidBody(rbInfo);
-
     }
 
     update(object3D) {
@@ -479,36 +821,6 @@ velocity
 
 */
 
-// export const Box = Ammo.btBoxShape;
-
-// export const Capsule = Ammo.btCapsuleShape;     // The btCapsuleShape represents a capsule around the Y axis
-// export const CapsuleX = Ammo.btCapsuleShapeX;
-// export const CapsuleZ = Ammo.btCapsuleShapeZ;
-
-// export const Compound = Ammo.btCompoundShape;
-
-// export const Concave = Ammo.btConcaveShape;
-
-// export const Cone = Ammo.btConeShape;
-// export const ConeX = Ammo.btConeShapeX;
-// export const ConeZ = Ammo.btConeShapeZ;
-
-// export const ConvexHull = Ammo.btConvexHullShape;
-
-// export const Cylinder = Ammo.btCylinderShape;
-// export const CylinderX = Ammo.btCylinderShapeX;
-// export const CylinderZ = Ammo.btCylinderShapeZ;
-
-// export const StaticMesh = Ammo.btBvhTriangleMeshShape;
-// export const Mesh = Ammo.btGImpactMeshShape;
-
-// export const Heightfield = Ammo.btHeightfieldTerrainShape;
-
-// export const Plane = Ammo.btPlaneShape;
-// export const StaticPlane = Ammo.btStaticPlaneShape;
-
-// export const Sphere = Ammo.btSphereShape;
-
 class Shape {
 
     constructor() {
@@ -530,7 +842,7 @@ class Shape {
 
         let shape = null;
 
-        let size = mesh.geometry.parameters;
+        let size = mesh && mesh.isMesh ? mesh.geometry.parameters : {};
 
         if (type !== undefined) {
             switch (type) {
@@ -539,6 +851,9 @@ class Shape {
                     break;
                 case 'sphere':
                     shape = new Sphere(size.radius);
+                    break;
+                case 'capsule':
+                    shape = new Capsule();
                     break;
                 case 'cylinder':
                     shape = new Cylinder(Math.max(size.radiusTop, size.radiusBottom), size.height);
@@ -554,6 +869,9 @@ class Shape {
                     break;
                 case 'gmesh':
                     shape = new GImpactMesh(mesh);
+                    break;
+                case 'compound':
+                    shape = new Compound();
                     break;
             }
         } else {
@@ -602,6 +920,20 @@ class Sphere extends Shape {
     }
 }
 
+
+class Capsule extends Shape {
+
+    constructor(radius = 0.5, height = 2) {
+
+        super();
+
+        height = Math.max(height - 2 * radius, 0);
+
+        this._shape = new Ammo.btCapsuleShape(radius, height);
+    }
+
+}
+
 class Cylinder extends Shape {
 
     constructor(radius = 0.5, height = 1) {
@@ -626,7 +958,7 @@ class Cone extends Shape {
 
 }
 
-// export class Plane extends Shape {
+// class Plane extends Shape {
 
 //     constructor(radius = 1, height = 1) {
 
@@ -638,7 +970,28 @@ class Cone extends Shape {
 
 // }
 
+class Compound extends Shape {
 
+    constructor() {
+
+        super();
+
+        this._shape = new Ammo.btCompoundShape();
+
+    }
+
+    addShape(shape, pos = new Vec3(0, 0, 0), qua = new Quaternion(0, 0, 0, 1)) {
+
+        let transform = new Ammo.btTransform();
+        transform.setIdentity();
+        transform.setOrigin(new Ammo.btVector3(pos.x, pos.y, pos.z));
+        transform.setRotation(new Ammo.btQuaternion(qua.x, qua.y, qua.z, qua.w));
+
+        this._shape.addChildShape(transform, shape._shape);
+
+    }
+
+}
 
 class GImpactMesh extends Shape {
 
@@ -705,7 +1058,7 @@ class ConvexHull extends Shape {
 
         super();
 
-        if (mesh.type == 'Mesh') {
+        if (mesh.isMesh) {
 
             this._shape = new Ammo.btConvexHullShape();
 
@@ -742,7 +1095,7 @@ class Mesh extends Shape {
         let faces, vertices;
         let totvert = 0;
 
-        if (mesh.type == 'Mesh') {
+        if (mesh.isMesh) {
             let data = getMeshData(mesh);
 
             faces = data.faces;
@@ -847,4 +1200,157 @@ function getMeshData(mesh) {
     }
 }
 
-export { Box, Cone, ConvexHull, Cylinder, Mesh, RigidBody, Shape, Sphere, Vec3, World };
+class Joint {
+
+    constructor() {
+
+        this._constraint = null;
+
+        this._bodyA = null;
+        this._bodyB = null;
+        this._breakForce = 3.4e+38;
+        this._enableCollision = true;
+
+    }
+
+    set bodyA(body) {
+        // this._destroyConstraint();
+        this._bodyA = body;
+        // this._createConstraint();
+    }
+
+    get bodyA() {
+        return this._bodyA;
+    }
+
+    set bodyB(body) {
+        // this._destroyConstraint();
+        this._bodyB = body;
+        // this._createConstraint();
+    }
+
+    get bodyB() {
+        return this._bodyB;
+    }
+
+    set breakForce(force) {
+        if (this._constraint && this._breakForce !== force) {
+            this._constraint.setBreakingImpulseThreshold(force);
+            this._breakForce = force;
+        }
+    }
+
+    get breakForce() {
+        return this._breakForce;
+    }
+
+    set enableCollision(enableCollision) {
+        this._destroyConstraint();
+        this._enableCollision = enableCollision;
+        this._createConstraint();
+    }
+
+    get enableCollision() {
+        return this._enableCollision;
+    }
+
+}
+
+class PointJoint extends Joint {
+
+    /**
+     * 
+     * @param {RigidBody} rb1 
+     * @param {Vec3} p1 local pivot position
+     * @param {RigidBody} rb2 
+     * @param {Vec3} p2 local pivot position
+     */
+    constructor(rb1, p1, rb2, p2) {
+
+        super();
+
+        // console.log(pivot);
+
+        // x.dot3(m_basis[0], m_basis[1], m_basis[2]) + m_origin;
+        // let pivot1 = transMulVec(body1.getWorldTransform().inverse(),
+        //     new Ammo.btVector3(pivot.x, pivot.y, pivot.z));
+        // let pivot2 = transMulVec(body2.getWorldTransform().inverse(),
+        //     new Ammo.btVector3(pivot.x, pivot.y, pivot.z));
+
+        let body1 = rb1._body;
+        let pivot1 = new Ammo.btVector3(p1.x, p1.y, p1.z);
+
+        if (rb2 && p2) {
+            let body2 = rb2._body;
+            let pivot2 = new Ammo.btVector3(p2.x, p2.y, p2.z);
+            this._constraint = new Ammo.btPoint2PointConstraint(body1, body2, pivot1, pivot2);
+        } else {
+            this._constraint = new Ammo.btPoint2PointConstraint(body1, pivot1);
+        }
+
+        // let loc = worldToLocal(body1.getWorldTransform(), new Ammo.btVector3(p1.x, p1.y, p1.z));
+        // console.log(loc.x(), loc.y(), loc.z());
+
+    }
+
+}
+
+class HingeJoint extends Joint {
+
+    constructor(rb1, p1, a1, rb2, p2, a2) {
+        super();
+
+        let body1 = rb1._body;
+        let pivot1 = new Ammo.btVector3(p1.x, p1.y, p1.z);
+        let axis1 = new Ammo.btVector3(a1.x, a1.y, a1.z);
+
+        if (rb2 && p2 && a2) {
+            let body2 = rb2._body;
+            let pivot2 = new Ammo.btVector3(p2.x, p2.y, p2.z);
+            let axis2 = new Ammo.btVector3(a2.x, a2.y, a2.z);
+
+            this._constraint = new Ammo.btHingeConstraint(body1, body2, pivot1, pivot2, axis1, axis2);
+        } else {
+            this._constraint = new Ammo.btHingeConstraint(body1, pivot1, axis1);
+        }
+
+    }
+}
+
+// TODO
+class SixDofSpringJoint extends Joint {
+
+    constructor(rb1, p1, a1, rb2, p2, a2) {
+        super();
+
+        let body1 = rb1._body;
+        new Ammo.btVector3(p1.x, p1.y, p1.z);
+        new Ammo.btVector3(a1.x, a1.y, a1.z);
+
+        if (rb2 && p2 && a2) {
+            let body2 = rb2._body;
+            new Ammo.btVector3(p2.x, p2.y, p2.z);
+            new Ammo.btVector3(a2.x, a2.y, a2.z);
+
+            this._constraint = new Ammo.btGeneric6DofSpringConstraint(body1, body2, frameA, frameB, !this._enableCollision);
+
+            Ammo.destroy(frameB);
+        } else {
+            this._constraint = new Ammo.btGeneric6DofSpringConstraint(body1, frameA, !this._enableCollision);
+        }
+
+        const axis = ['X', 'Y', 'Z', 'X', 'Y', 'Z'];
+
+        for (let i = 0; i < 6; i++) {
+            const type = i < 3 ? '_linear' : '_angular';
+            this._constraint.enableSpring(i, this[type + 'Spring' + axis[i]]);
+            this._constraint.setDamping(i, this[type + 'Damping' + axis[i]]);
+            this._constraint.setEquilibriumPoint(i, this[type + 'Equilibrium' + axis[i]]);
+            this._constraint.setStiffness(i, this[type + 'Stiffness' + axis[i]]);
+        }
+
+    }
+
+}
+
+export { Box, Capsule, Compound, Cone, ConvexHull, Cylinder, HingeJoint, Joint, Mesh, PointJoint, Quaternion, RigidBody, Shape, SixDofSpringJoint, Sphere, Vec3, World };
