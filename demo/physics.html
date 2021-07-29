@@ -10,6 +10,7 @@
             color: #333;
         }
     </style>
+    <script src="__settings__.js"></script>
 </head>
 
 <body>
@@ -18,7 +19,9 @@
         move the camera.</div>
     <div id="container"></div>
 
-    <script src="js/ammo/ammo.full.js"></script>
+    <!-- <script src="js/ammo/ammo.full.js"></script> -->
+
+    <script src="__modules__.js"></script>
 
     <script type="module">
         import * as THREE from 'https://threejs.org/build/three.module.js';
@@ -26,12 +29,10 @@
         import Stats from 'https://threejs.org/examples/jsm/libs/stats.module.js';
 
         import { OrbitControls } from 'https://threejs.org/examples/jsm/controls/OrbitControls.js';
-        import { ConvexObjectBreaker } from 'https://threejs.org/examples/jsm/misc/ConvexObjectBreaker.js';
-        import { ConvexGeometry } from 'https://threejs.org/examples/jsm/geometries/ConvexGeometry.js';
 
         import { GLTFLoader } from 'https://threejs.org/examples/jsm/loaders/GLTFLoader.js';
 
-        import * as Bullet from './js/bullet.module.js';
+        import * as Bullet from './js/bullet-es.js';
 
         import { InfiniteGridHelper } from './js/helper/InfiniteGridHelper.js';
 
@@ -50,8 +51,6 @@
         // Physics variables
         let physicsWorld;
         const margin = 0.05;
-
-        const convexBreaker = new ConvexObjectBreaker();
 
         // Rigid bodies include all movable objects
         const rigidBodies = [];
@@ -79,7 +78,7 @@
 
         // - Main code -
 
-        Ammo().then(function (AmmoLib) {
+        /* Ammo().then(function (AmmoLib) {
 
             Ammo = AmmoLib;
 
@@ -88,7 +87,14 @@
             init();
             animate();
 
-        });
+        }); */
+
+
+        if (PRELOAD_MODULES.length > 0) {
+            loadModules(PRELOAD_MODULES, ASSET_PREFIX, init);
+        } else {
+            init();
+        }
 
 
         // - Functions -
@@ -100,6 +106,8 @@
             initPhysics();
 
             createObjects();
+
+            animate();
 
         }
 

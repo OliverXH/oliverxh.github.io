@@ -1004,28 +1004,34 @@ class World {
 
     constructor(options = {}) {
 
-        const _collisionConfiguration = new Ammo.btDefaultCollisionConfiguration(),
+        if (false) {
 
-            _dispatcher = new Ammo.btCollisionDispatcher(_collisionConfiguration),
-            //  btGImpactCollisionAlgorithm::registerAlgorithm((btCollisionDispatcher *)world->dispatcher);
-
-            _pairCache = new Ammo.btDbvtBroadphase(),
-
-            // world.filterCallback = new rbFilterCallback();
-            // world.pairCache.getOverlappingPairCache().setOverlapFilterCallback(world.filterCallback);
-
-            /* constraint solving */
-            _constraintSolver = new Ammo.btSequentialImpulseConstraintSolver();
-
-
-        /* world */
-        this._dynamicsWorld = new Ammo.btDiscreteDynamicsWorld(_dispatcher, _pairCache, _constraintSolver, _collisionConfiguration);
+            const collisionConfiguration = new Ammo.btSoftBodyRigidBodyCollisionConfiguration();
+            const dispatcher = new Ammo.btCollisionDispatcher(collisionConfiguration);
+            const broadphase = new Ammo.btDbvtBroadphase();
+            const solver = new Ammo.btSequentialImpulseConstraintSolver();
+            const softBodySolver = new Ammo.btDefaultSoftBodySolver();
+            this._dynamicsWorld = new Ammo.btSoftRigidDynamicsWorld(dispatcher, broadphase, solver, collisionConfiguration, softBodySolver);
+            this._dynamicsWorld.getWorldInfo().set_m_gravity(new Ammo.btVector3(0, -9.8, 0));
+        
+            softBodyHelpers = new Ammo.btSoftBodyHelpers();
+        
+        } else {
+        
+            const collisionConfiguration = new Ammo.btDefaultCollisionConfiguration();
+            const dispatcher = new Ammo.btCollisionDispatcher(collisionConfiguration);
+            const broadphase = new Ammo.btDbvtBroadphase();
+            const solver = new Ammo.btSequentialImpulseConstraintSolver();
+            this._dynamicsWorld = new Ammo.btDiscreteDynamicsWorld(dispatcher, broadphase, solver, collisionConfiguration);
+        
+        }
 
         this._gravity = new Vec3();
 
         this.gravity = options.gravity !== undefined ? options.gravity : new Vec3(0, -9.82, 0);
 
         this.bodies = [];
+        this.constraints = [];
 
     }
 
