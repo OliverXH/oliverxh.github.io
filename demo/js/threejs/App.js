@@ -116,7 +116,7 @@ const REG_FFF_COUNTER = true;
 
 function recalcVerticalFov(oldFov, oldAspect, newAspect) {
     return MathUtils.RAD2DEG * 2 * Math.atan(
-            Math.tan(MathUtils.DEG2RAD * oldFov / 2) * oldAspect / newAspect);
+        Math.tan(MathUtils.DEG2RAD * oldFov / 2) * oldAspect / newAspect);
 }
 
 
@@ -127,7 +127,7 @@ class App extends EventDispatcher {
         super();
 
         this.container = container instanceof HTMLElement ? container
-                : document.getElementById(container);
+            : document.getElementById(container);
 
         if (!Detector.checkWebGL()) {
             Detector.showWebGLErrorMessage(this.container);
@@ -208,11 +208,11 @@ class App extends EventDispatcher {
          * have the assignMaterial puzzle, the old version of which has used
          * the materials property and the updateMaterials() method.
          */
-        this.materials = { push: function() {} };
-        this.updateMaterials = function() {},
+        this.materials = { push: function () { } };
+        this.updateMaterials = function () { },
 
-        // updated from the loaded gltf file
-        this._envIBLMode = IBLEnvironmentPMREM;
+            // updated from the loaded gltf file
+            this._envIBLMode = IBLEnvironmentPMREM;
         this._envLightProbe = null;
 
         this._resizeCb = null;
@@ -248,7 +248,7 @@ class App extends EventDispatcher {
             if (!halfFloat && this.renderer.shadowMap.type === ESMShadowMap) {
                 this.renderer.shadowMap.type = PCFSoftShadowMap;
 
-                gltf.scene.traverse(function(obj) {
+                gltf.scene.traverse(function (obj) {
                     if (obj.isLight && obj.castShadow && obj.shadow) {
                         // scale bias to make shadows look decent when forcing
                         // them to be PCF instead of ESM
@@ -304,7 +304,7 @@ class App extends EventDispatcher {
 
     _updateMeshesRaycastFromGLTF(gltf) {
         if (gltf.scene) {
-            gltf.scene.traverse(function(obj) {
+            gltf.scene.traverse(function (obj) {
                 const geom = obj.geometry;
 
                 if (obj.isMesh) {
@@ -377,13 +377,13 @@ class App extends EventDispatcher {
 
         if (this.scene.worldEnvMapProbe === null) {
             this.scene.worldEnvMapProbe = new CubeReflectionProbe(
-                    this._pmremMaxTileSize);
+                this._pmremMaxTileSize);
             this.scene.worldEnvMapProbe.influenceType = ReflectionProbeTypeInfinite;
             this.scene.worldEnvMapProbe.parallaxType = ReflectionProbeTypeInfinite;
         }
         const wProbe = this.scene.worldEnvMapProbe;
 
-        switch(this._envIBLMode) {
+        switch (this._envIBLMode) {
             case IBLEnvironmentPMREM:
                 wProbe.onUpdate = cubeRT => this.generateRTargetPMREM(cubeRT);
                 break;
@@ -404,7 +404,7 @@ class App extends EventDispatcher {
 
                     this._disposeEnvLightProbe();
                     this._envLightProbe = LightProbeGenerator.fromCubeRenderTarget(
-                            this.renderer, probeRenderTarget);
+                        this.renderer, probeRenderTarget);
                     this.scene.add(this._envLightProbe);
                     probeRenderTarget.dispose();
 
@@ -425,14 +425,14 @@ class App extends EventDispatcher {
          * therefore there's no reason to use the costly specular approximation.
          */
         this.renderer.compatSettings.useSpecEnvBlenderApprox
-                = this._envIBLMode === IBLEnvironmentPMREM;
+            = this._envIBLMode === IBLEnvironmentPMREM;
     }
 
     _updateMaterialsFromGLTF(gltf) {
 
         const scope = this;
         if (gltf.scene) {
-            gltf.scene.traverse(function(obj) {
+            gltf.scene.traverse(function (obj) {
                 const mat = obj.material;
                 if (mat && scope.useHDR) {
                     mat.useHDR = true;
@@ -454,7 +454,7 @@ class App extends EventDispatcher {
             scope.mixer = new AnimationMixer(scope.scene);
         }
 
-        (gltf.animations || []).forEach(function(anim) {
+        (gltf.animations || []).forEach(function (anim) {
             const animObj = animRoot.getObjectById(anim.nodeId);
             if (animObj) {
 
@@ -464,7 +464,7 @@ class App extends EventDispatcher {
                 // wrongly treated as a root according to the logic in
                 // the PropertyBinding.findNode() method
                 if (animObj.id != animRoot.id
-                        && (animObj.name === "" || animObj.name === "root"
+                    && (animObj.name === "" || animObj.name === "root"
                         || animObj.name === "." || animObj.name === animRoot.name
                         || animObj.name === animRoot.uuid)) {
                     action = scope.mixer.clipAction(anim.clip, animObj);
@@ -490,10 +490,10 @@ class App extends EventDispatcher {
     }
 
     _traverseSceneForTexUniforms(scene, cb) {
-        scene.traverse(function(obj) {
+        scene.traverse(function (obj) {
             if (obj.material) {
                 const objMats = Array.isArray(obj.material) ? obj.material : [obj.material];
-                objMats.forEach(function(mat) {
+                objMats.forEach(function (mat) {
                     if (mat.program !== undefined) {
                         cb(obj, mat, mat.program.getTexUniformCount());
                     }
@@ -517,7 +517,7 @@ class App extends EventDispatcher {
         const currentRenderTarget = scope.renderer.getRenderTarget();
         scope.renderer.setRenderTarget(renderTarget);
 
-        scope.renderer.compileAsync(scene, camera, function(percentage) {
+        scope.renderer.compileAsync(scene, camera, function (percentage) {
 
             if (percentage >= 1) {
                 scope.renderer.setRenderTarget(currentRenderTarget);
@@ -537,13 +537,13 @@ class App extends EventDispatcher {
         let renderOrders = [];
         let renderOrder = -1000;
 
-        scene.traverse(function(planeObj) {
+        scene.traverse(function (planeObj) {
             if (planeObj.isClippingPlaneObject) {
 
                 planeObjs.push(planeObj);
                 planes.push(planeObj.plane);
 
-                scene.traverse(function(objToClip) {
+                scene.traverse(function (objToClip) {
                     if (planeObj.needsClippingPlane(objToClip))
                         planeObj.assignToObject(objToClip, renderOrder++);
                 });
@@ -569,7 +569,7 @@ class App extends EventDispatcher {
 
         const scope = this;
 
-        scope.loadScene(url, function(loadedScene) {
+        scope.loadScene(url, function (loadedScene) {
             loadOkCb(loadedScene);
             if (autoStart) scope.run();
         }, null, loadErrorCb);
@@ -588,7 +588,7 @@ class App extends EventDispatcher {
         scope._loadingTime = performance.now();
 
         if (scope.preloader) scope.preloader.onUpdate(0);
-        this.loader.load(url, function(gltf) {
+        this.loader.load(url, function (gltf) {
 
             // setup scene/camera
             scope.scene = gltf.scene || new Scene();
@@ -601,7 +601,7 @@ class App extends EventDispatcher {
                 sceneBox = SceneUtils.calcSceneBox(scope.scene);
 
                 scope.camera = SceneUtils.createDefaultCamera(sceneBox,
-                        scope.container.offsetWidth / scope.container.offsetHeight);
+                    scope.container.offsetWidth / scope.container.offsetHeight);
                 scope.scene.add(scope.camera);
             }
 
@@ -647,15 +647,15 @@ class App extends EventDispatcher {
             scope.scene.visible = false;
             scope.scene.disableChildRendering = true;
 
-            const firstFrameRendered = function() {
+            const firstFrameRendered = function () {
                 // handle possible unload() before firstFrameRendered
                 if (scope.scene)
-                    scope._traverseSceneForTexUniforms(scope.scene, function(obj, mat, count) {
+                    scope._traverseSceneForTexUniforms(scope.scene, function (obj, mat, count) {
                         if (count > TEX_IMAGE_UNITS_WARN_LIMIT) {
                             console.warn(`v3d.App: Material "${mat.name}" on object `
-                                    + `"${obj.name}" exceeds iOS limit of `
-                                    + `${TEX_IMAGE_UNITS_WARN_LIMIT} textures `
-                                    + `(has ${count}).`);
+                                + `"${obj.name}" exceeds iOS limit of `
+                                + `${TEX_IMAGE_UNITS_WARN_LIMIT} textures `
+                                + `(has ${count}).`);
                         }
                     });
 
@@ -664,10 +664,10 @@ class App extends EventDispatcher {
 
             const rt = scope.postprocessing ? scope.postprocessing.composer.renderTarget1 : null;
             scope._precompileSceneAsync(scope.scene, scope.camera, rt,
-                function(percentage) {
+                function (percentage) {
 
                     const totalPercentage = (GLTF_PROGRESS_WEIGHT * 100 + COMPILE_PROGRESS_WEIGHT * percentage)
-                            / (GLTF_PROGRESS_WEIGHT + COMPILE_PROGRESS_WEIGHT);
+                        / (GLTF_PROGRESS_WEIGHT + COMPILE_PROGRESS_WEIGHT);
                     if (progressCb) progressCb(totalPercentage);
                     if (scope.preloader) scope.preloader.onUpdate(totalPercentage);
 
@@ -680,7 +680,7 @@ class App extends EventDispatcher {
                         scope.addEventListener('firstFrameRendered', firstFrameRendered);
 
                         if (loadCb) {
-                            setTimeout(function() {
+                            setTimeout(function () {
                                 /**
                                  * Restore the loaded scene's visibility. See
                                  * the comment above.
@@ -703,13 +703,13 @@ class App extends EventDispatcher {
             if (scope.clearBkgOnLoad) scope.scene.background = null;
 
             if (REG_PPP_PROFILING) {
-                scope._tripleP = new RepeatedKeyListener(window, Keys.P, function() {
+                scope._tripleP = new RepeatedKeyListener(window, Keys.P, function () {
                     AppUtils.printPerformanceInfo(scope, 1);
                 }, 3, 1);
             }
 
             if (REG_FFF_COUNTER) {
-                scope._tripleF = new RepeatedKeyListener(window, Keys.F, function() {
+                scope._tripleF = new RepeatedKeyListener(window, Keys.F, function () {
                     if (scope.stats)
                         scope.hideFPS();
                     else
@@ -717,14 +717,14 @@ class App extends EventDispatcher {
                 }, 3, 1);
             }
 
-        }, function(percentage) {
+        }, function (percentage) {
 
             const totalPercentage = GLTF_PROGRESS_WEIGHT * percentage
-                    / (GLTF_PROGRESS_WEIGHT + COMPILE_PROGRESS_WEIGHT);
+                / (GLTF_PROGRESS_WEIGHT + COMPILE_PROGRESS_WEIGHT);
             if (progressCb) progressCb(totalPercentage);
             if (scope.preloader) scope.preloader.onUpdate(totalPercentage);
 
-        }, function(error) {
+        }, function (error) {
 
             console.error(error);
             if (errorCb) errorCb(error);
@@ -733,7 +733,7 @@ class App extends EventDispatcher {
 
         // remove previous resize callback if exists
         window.removeEventListener('resize', this._resizeCb, false);
-        this._resizeCb = function() { if (scope.onResize) scope.onResize(); }
+        this._resizeCb = function () { if (scope.onResize) scope.onResize(); }
         window.addEventListener('resize', this._resizeCb, false);
     }
 
@@ -750,18 +750,18 @@ class App extends EventDispatcher {
         if (loadLights === undefined) loadLights = true;
 
         if (scope.preloader) scope.preloader.onUpdate(0);
-        this.loader.load(url, function(gltf) {
+        this.loader.load(url, function (gltf) {
 
             const loadedScene = gltf.scene || new Scene();
 
             const objsToUnload = [];
-            loadedScene.traverse(function(obj) {
+            loadedScene.traverse(function (obj) {
                 if (obj.isCamera && !loadCameras || obj.isLight && !loadLights) {
                     objsToUnload.push(obj);
                 }
             });
 
-            objsToUnload.forEach(function(obj) {
+            objsToUnload.forEach(function (obj) {
                 scope.unload(obj);
             });
 
@@ -793,10 +793,10 @@ class App extends EventDispatcher {
             loadedScene.disableChildRendering = true;
 
             scope._precompileSceneAsync(compiledScene, scope.camera || new Camera(),
-                rt, function(percentage) {
+                rt, function (percentage) {
 
                     const totalPercentage = (GLTF_PROGRESS_WEIGHT * 100 + COMPILE_PROGRESS_WEIGHT * percentage)
-                            / (GLTF_PROGRESS_WEIGHT + COMPILE_PROGRESS_WEIGHT);
+                        / (GLTF_PROGRESS_WEIGHT + COMPILE_PROGRESS_WEIGHT);
                     if (progressCb) progressCb(totalPercentage);
                     if (scope.preloader) scope.preloader.onUpdate(totalPercentage);
 
@@ -811,17 +811,17 @@ class App extends EventDispatcher {
                          * because the scene is already being rendered while
                          * appending is going on - no deferring.
                          */
-                        scope._traverseSceneForTexUniforms(loadedScene, function(obj, mat, count) {
+                        scope._traverseSceneForTexUniforms(loadedScene, function (obj, mat, count) {
                             if (count > TEX_IMAGE_UNITS_WARN_LIMIT) {
                                 console.warn(`v3d.App: Material "${mat.name}" on object `
-                                        + `"${obj.name}" exceeds iOS limit of `
-                                        + `${TEX_IMAGE_UNITS_WARN_LIMIT} textures `
-                                        + `(has ${count}).`);
+                                    + `"${obj.name}" exceeds iOS limit of `
+                                    + `${TEX_IMAGE_UNITS_WARN_LIMIT} textures `
+                                    + `(has ${count}).`);
                             }
                         });
 
                         if (loadCb) {
-                            setTimeout(function() {
+                            setTimeout(function () {
                                 /**
                                  * Restore the loaded scene's visibility. See
                                  * the comment above.
@@ -840,14 +840,14 @@ class App extends EventDispatcher {
                 }
             );
 
-        }, function(percentage) {
+        }, function (percentage) {
 
             const totalPercentage = GLTF_PROGRESS_WEIGHT * percentage
-                    / (GLTF_PROGRESS_WEIGHT + COMPILE_PROGRESS_WEIGHT);
+                / (GLTF_PROGRESS_WEIGHT + COMPILE_PROGRESS_WEIGHT);
             if (progressCb) progressCb(totalPercentage);
             if (scope.preloader) scope.preloader.onUpdate(totalPercentage);
 
-        }, function(error) {
+        }, function (error) {
 
             console.error(error);
             if (errorCb) errorCb(error);
@@ -909,7 +909,7 @@ class App extends EventDispatcher {
 
             if (scope.mixer) {
                 scope.mixer.stopAllAction();
-                scope.actions.forEach(function(action) {
+                scope.actions.forEach(function (action) {
                     scope.mixer.uncacheAction(action.getClip(), action.getRoot());
                 });
             }
@@ -1012,31 +1012,31 @@ class App extends EventDispatcher {
             if (cam.isPerspectiveCamera) {
 
                 switch (cam.viewportFit.type) {
-                case ViewportFitVertical:
-                    cam.aspect = aspect;
-                    break;
-                case ViewportFitHorizontal:
-                    cam.fov = recalcVerticalFov(cam.fov,
+                    case ViewportFitVertical:
+                        cam.aspect = aspect;
+                        break;
+                    case ViewportFitHorizontal:
+                        cam.fov = recalcVerticalFov(cam.fov,
                             cam.aspect, aspect);
-                    cam.aspect = aspect;
-                    break;
-                case ViewportFitAuto:
+                        cam.aspect = aspect;
+                        break;
+                    case ViewportFitAuto:
 
-                    const oldAspectIsLess = cam.aspect < cam.viewportFit.initialAspect;
-                    const newAspectIsLess = aspect < cam.viewportFit.initialAspect;
+                        const oldAspectIsLess = cam.aspect < cam.viewportFit.initialAspect;
+                        const newAspectIsLess = aspect < cam.viewportFit.initialAspect;
 
-                    if (oldAspectIsLess && newAspectIsLess)
-                        cam.fov = recalcVerticalFov(cam.fov, cam.aspect, aspect);
-                    else if (oldAspectIsLess && !newAspectIsLess)
-                        cam.fov = recalcVerticalFov(cam.fov, cam.aspect, cam.viewportFit.initialAspect);
-                    else if (!oldAspectIsLess && newAspectIsLess)
-                        cam.fov = recalcVerticalFov(cam.fov, cam.viewportFit.initialAspect, aspect);
+                        if (oldAspectIsLess && newAspectIsLess)
+                            cam.fov = recalcVerticalFov(cam.fov, cam.aspect, aspect);
+                        else if (oldAspectIsLess && !newAspectIsLess)
+                            cam.fov = recalcVerticalFov(cam.fov, cam.aspect, cam.viewportFit.initialAspect);
+                        else if (!oldAspectIsLess && newAspectIsLess)
+                            cam.fov = recalcVerticalFov(cam.fov, cam.viewportFit.initialAspect, aspect);
 
-                    cam.aspect = aspect;
-                    break;
-                case ViewportFitNone:
-                default:
-                    break;
+                        cam.aspect = aspect;
+                        break;
+                    case ViewportFitNone:
+                    default:
+                        break;
                 }
 
             } else if (cam.isOrthographicCamera) {
@@ -1044,41 +1044,41 @@ class App extends EventDispatcher {
                 let horizSize;
 
                 switch (cam.viewportFit.type) {
-                case ViewportFitVertical:
-                    horizSize = cam.top * aspect;
-                    cam.left = -horizSize;
-                    cam.right = horizSize;
-                    break;
-                case ViewportFitHorizontal:
-                    const vertSize = cam.right / aspect;
-                    cam.bottom = -vertSize;
-                    cam.top = vertSize;
-                    break;
-                case ViewportFitAuto:
-                    const oldAspectIsLess = (cam.right - cam.left) /
-                            (cam.top - cam.bottom) < cam.viewportFit.initialAspect;
-                    const newAspectIsLess = aspect < cam.viewportFit.initialAspect;
-
-                    horizSize;
-
-                    if (oldAspectIsLess && newAspectIsLess)
-                        horizSize = cam.right;
-                    else if (oldAspectIsLess && !newAspectIsLess)
-                        horizSize = cam.right * aspect / cam.viewportFit.initialAspect;
-                    else if (!oldAspectIsLess && newAspectIsLess)
-                        horizSize = cam.top * cam.viewportFit.initialAspect;
-                    else
+                    case ViewportFitVertical:
                         horizSize = cam.top * aspect;
+                        cam.left = -horizSize;
+                        cam.right = horizSize;
+                        break;
+                    case ViewportFitHorizontal:
+                        const vertSize = cam.right / aspect;
+                        cam.bottom = -vertSize;
+                        cam.top = vertSize;
+                        break;
+                    case ViewportFitAuto:
+                        const oldAspectIsLess = (cam.right - cam.left) /
+                            (cam.top - cam.bottom) < cam.viewportFit.initialAspect;
+                        const newAspectIsLess = aspect < cam.viewportFit.initialAspect;
 
-                    cam.left = -horizSize;
-                    cam.right = horizSize;
-                    cam.bottom = -horizSize / aspect;
-                    cam.top = horizSize / aspect;
+                        horizSize;
 
-                    break;
-                case ViewportFitNone:
-                default:
-                    break;
+                        if (oldAspectIsLess && newAspectIsLess)
+                            horizSize = cam.right;
+                        else if (oldAspectIsLess && !newAspectIsLess)
+                            horizSize = cam.right * aspect / cam.viewportFit.initialAspect;
+                        else if (!oldAspectIsLess && newAspectIsLess)
+                            horizSize = cam.top * cam.viewportFit.initialAspect;
+                        else
+                            horizSize = cam.top * aspect;
+
+                        cam.left = -horizSize;
+                        cam.right = horizSize;
+                        cam.bottom = -horizSize / aspect;
+                        cam.top = horizSize / aspect;
+
+                        break;
+                    case ViewportFitNone:
+                    default:
+                        break;
                 }
 
             }
@@ -1102,7 +1102,7 @@ class App extends EventDispatcher {
     animate() {
         const scope = this;
 
-        const cb = function() {
+        const cb = function () {
 
             if (scope.stats)
                 scope.stats.begin();
@@ -1180,46 +1180,46 @@ class App extends EventDispatcher {
             return;
 
         switch (camera.controls.type) {
-        case 'ORBIT':
-            this.controls = new OrbitControls(camera, element || this.renderer.domElement);
-            this.controls.targetObj = camera.controls.orbitTarget;
-            this.controls.minDistance = camera.controls.orbitMinDistance;
-            this.controls.maxDistance = camera.controls.orbitMaxDistance;
-            this.controls.minZoom = camera.controls.orbitMinZoom;
-            this.controls.maxZoom = camera.controls.orbitMaxZoom;
-            this.controls.minPolarAngle = camera.controls.orbitMinPolarAngle;
-            this.controls.maxPolarAngle = camera.controls.orbitMaxPolarAngle;
-            this.controls.minAzimuthAngle = camera.controls.orbitMinAzimuthAngle;
-            this.controls.maxAzimuthAngle = camera.controls.orbitMaxAzimuthAngle;
-            break;
-        case 'FLYING':
-            this.controls = new FlyingControls(camera, this.renderer.domElement);
+            case 'ORBIT':
+                this.controls = new OrbitControls(camera, element || this.renderer.domElement);
+                this.controls.targetObj = camera.controls.orbitTarget;
+                this.controls.minDistance = camera.controls.orbitMinDistance;
+                this.controls.maxDistance = camera.controls.orbitMaxDistance;
+                this.controls.minZoom = camera.controls.orbitMinZoom;
+                this.controls.maxZoom = camera.controls.orbitMaxZoom;
+                this.controls.minPolarAngle = camera.controls.orbitMinPolarAngle;
+                this.controls.maxPolarAngle = camera.controls.orbitMaxPolarAngle;
+                this.controls.minAzimuthAngle = camera.controls.orbitMinAzimuthAngle;
+                this.controls.maxAzimuthAngle = camera.controls.orbitMaxAzimuthAngle;
+                break;
+            case 'FLYING':
+                this.controls = new FlyingControls(camera, this.renderer.domElement);
 
-            this.controls.panSpeedTouch *= camera.controls.moveSpeed;
-            this.controls.zoomSpeedKey *= camera.controls.moveSpeed;
-            break;
-        case 'FIRST_PERSON':
-            this.controls = new FirstPersonControls(camera, this.renderer.domElement);
-            this.controls.collisionMeshes = [];
+                this.controls.panSpeedTouch *= camera.controls.moveSpeed;
+                this.controls.zoomSpeedKey *= camera.controls.moveSpeed;
+                break;
+            case 'FIRST_PERSON':
+                this.controls = new FirstPersonControls(camera, this.renderer.domElement);
+                this.controls.collisionMeshes = [];
 
-            const scope = this;
+                const scope = this;
 
-            this.scene.traverse(function(obj) {
-                const mat = obj.material;
-                if (mat && camera.controls.collisionMaterial && mat.name == camera.controls.collisionMaterial.name) {
-                    scope.controls.collisionMeshes.push(obj);
-                }
-            });
+                this.scene.traverse(function (obj) {
+                    const mat = obj.material;
+                    if (mat && camera.controls.collisionMaterial && mat.name == camera.controls.collisionMaterial.name) {
+                        scope.controls.collisionMeshes.push(obj);
+                    }
+                });
 
-            scope.controls.gazeLevel = camera.controls.gazeLevel;
-            scope.controls.storyHeight = camera.controls.storyHeight;
+                scope.controls.gazeLevel = camera.controls.gazeLevel;
+                scope.controls.storyHeight = camera.controls.storyHeight;
 
-            this.controls.zoomSpeedKey *= camera.controls.moveSpeed;
+                this.controls.zoomSpeedKey *= camera.controls.moveSpeed;
 
-            break;
-        default:
-            this.controls = null;
-            break;
+                break;
+            default:
+                this.controls = null;
+                break;
         }
 
         if (this.controls) {
@@ -1262,7 +1262,7 @@ class App extends EventDispatcher {
         this.onResize();
     }
 
-    getCamera(tryXrIfAvail=false) {
+    getCamera(tryXrIfAvail = false) {
         if (tryXrIfAvail && this.camera && this.renderer && this.renderer.xr.enabled && this.renderer.xr.isPresenting)
             return this.renderer.xr.getCamera(this.camera);
         else
@@ -1322,16 +1322,16 @@ class App extends EventDispatcher {
 
             let aaSamples = 0;
             switch (this.aaMethod) {
-            case 'AUTO':
-            case 'MSAA4':
-                aaSamples = this._checkMSAA(this.renderer, 4);
-                break;
-            case 'MSAA8':
-                aaSamples = this._checkMSAA(this.renderer, 8);
-                break;
-            case 'MSAA16':
-                aaSamples = this._checkMSAA(this.renderer, 16);
-                break;
+                case 'AUTO':
+                case 'MSAA4':
+                    aaSamples = this._checkMSAA(this.renderer, 4);
+                    break;
+                case 'MSAA8':
+                    aaSamples = this._checkMSAA(this.renderer, 8);
+                    break;
+                case 'MSAA16':
+                    aaSamples = this._checkMSAA(this.renderer, 16);
+                    break;
             }
 
             if (Detector.checkSwiftShader(this.renderer)) {
@@ -1343,11 +1343,11 @@ class App extends EventDispatcher {
 
             if (aaSamples) {
                 renderTarget = new WebGLMultisampleRenderTarget(this.getWidth(), this.getHeight(),
-                        renderTargetParams);
+                    renderTargetParams);
                 renderTarget.samples = aaSamples;
             } else {
                 renderTarget = new WebGLRenderTarget(this.getWidth(), this.getHeight(),
-                        renderTargetParams);
+                    renderTargetParams);
             }
 
             renderTarget.texture.name = 'EffectComposer.rt1';
@@ -1393,196 +1393,196 @@ class App extends EventDispatcher {
                 insertIndex--;
 
             switch (effect.type) {
-            case 'bloom':
-                const bloomStrength = effect.strength;
-                const bloomRadius = effect.radius;
-                const bloomThreshold = effect.threshold;
+                case 'bloom':
+                    const bloomStrength = effect.strength;
+                    const bloomRadius = effect.radius;
+                    const bloomThreshold = effect.threshold;
 
-                let bloomPass;
+                    let bloomPass;
 
-                if (!this.postprocessing.bloomPass) {
-                    bloomPass = new BloomPass(new Vector2(this.getWidth(), this.getHeight()),
+                    if (!this.postprocessing.bloomPass) {
+                        bloomPass = new BloomPass(new Vector2(this.getWidth(), this.getHeight()),
                             bloomStrength, bloomRadius, bloomThreshold, renderTargetParams);
 
-                    composer.insertPass(bloomPass, insertIndex);
-                    this.postprocessing.bloomPass = bloomPass;
-                } else {
-                    bloomPass = this.postprocessing.bloomPass;
+                        composer.insertPass(bloomPass, insertIndex);
+                        this.postprocessing.bloomPass = bloomPass;
+                    } else {
+                        bloomPass = this.postprocessing.bloomPass;
 
-                    bloomPass.strength = bloomStrength;
-                    bloomPass.radius = bloomRadius;
-                    bloomPass.threshold = bloomThreshold;
-                }
+                        bloomPass.strength = bloomStrength;
+                        bloomPass.radius = bloomRadius;
+                        bloomPass.threshold = bloomThreshold;
+                    }
 
-                break;
+                    break;
 
-            case 'brightnessContrast':
-                let brightnessContrastPass;
+                case 'brightnessContrast':
+                    let brightnessContrastPass;
 
-                if (!this.postprocessing.brightnessContrastPass) {
-                    brightnessContrastPass = new BrightnessContrastPass();
+                    if (!this.postprocessing.brightnessContrastPass) {
+                        brightnessContrastPass = new BrightnessContrastPass();
 
-                    composer.insertPass(brightnessContrastPass, insertIndex);
-                    this.postprocessing.brightnessContrastPass = brightnessContrastPass;
-                } else
-                    brightnessContrastPass = this.postprocessing.brightnessContrastPass;
+                        composer.insertPass(brightnessContrastPass, insertIndex);
+                        this.postprocessing.brightnessContrastPass = brightnessContrastPass;
+                    } else
+                        brightnessContrastPass = this.postprocessing.brightnessContrastPass;
 
-                brightnessContrastPass.brightness = effect.brightness;
-                brightnessContrastPass.contrast = effect.contrast;
+                    brightnessContrastPass.brightness = effect.brightness;
+                    brightnessContrastPass.contrast = effect.contrast;
 
-                break;
+                    break;
 
-            case 'dof':
-                let bokehPass;
+                case 'dof':
+                    let bokehPass;
 
-                if (!this.postprocessing.bokehPass) {
-                    bokehPass = new BokehPass(this.scene, this.camera, {
-                        width: this.getWidth(),
-                        height: this.getHeight()
-                    });
-                    composer.insertPass(bokehPass, insertIndex);
-                    this.postprocessing.bokehPass = bokehPass;
-                } else {
-                    bokehPass = this.postprocessing.bokehPass;
-                }
+                    if (!this.postprocessing.bokehPass) {
+                        bokehPass = new BokehPass(this.scene, this.camera, {
+                            width: this.getWidth(),
+                            height: this.getHeight()
+                        });
+                        composer.insertPass(bokehPass, insertIndex);
+                        this.postprocessing.bokehPass = bokehPass;
+                    } else {
+                        bokehPass = this.postprocessing.bokehPass;
+                    }
 
-                bokehPass.focus = effect.focus;
-                bokehPass.aperture = effect.aperture;
-                bokehPass.maxblur = effect.maxblur;
-                bokehPass.depthLeakThreshold = effect.depthLeakThreshold;
+                    bokehPass.focus = effect.focus;
+                    bokehPass.aperture = effect.aperture;
+                    bokehPass.maxblur = effect.maxblur;
+                    bokehPass.depthLeakThreshold = effect.depthLeakThreshold;
 
-                break;
+                    break;
 
-            case 'grayscale':
-                if (!this.postprocessing.grayscalePass) {
-                    const grayscalePass = new GrayscalePass();
+                case 'grayscale':
+                    if (!this.postprocessing.grayscalePass) {
+                        const grayscalePass = new GrayscalePass();
 
-                    composer.insertPass(grayscalePass, insertIndex);
-                    this.postprocessing.grayscalePass = grayscalePass;
-                }
+                        composer.insertPass(grayscalePass, insertIndex);
+                        this.postprocessing.grayscalePass = grayscalePass;
+                    }
 
-                break;
+                    break;
 
-            case 'outline':
-                let outlinePass;
+                case 'outline':
+                    let outlinePass;
 
-                if (!this.postprocessing.outlinePass) {
-                    outlinePass = new OutlinePass(
+                    if (!this.postprocessing.outlinePass) {
+                        outlinePass = new OutlinePass(
                             new Vector2(this.getWidth(), this.getHeight()),
                             this.scene, this.camera);
-                    composer.insertPass(outlinePass, insertIndex);
-                    this.postprocessing.outlinePass = outlinePass;
-                } else
-                    outlinePass = this.postprocessing.outlinePass;
+                        composer.insertPass(outlinePass, insertIndex);
+                        this.postprocessing.outlinePass = outlinePass;
+                    } else
+                        outlinePass = this.postprocessing.outlinePass;
 
-                outlinePass.edgeStrength = effect.edgeStrength;
-                outlinePass.edgeGlow = effect.edgeGlow;
-                outlinePass.edgeThickness = effect.edgeThickness;
-                outlinePass.pulsePeriod = effect.pulsePeriod;
-                outlinePass.visibleEdgeColor.fromArray(effect.visibleEdgeColor)
-                outlinePass.hiddenEdgeColor.fromArray(effect.hiddenEdgeColor);
+                    outlinePass.edgeStrength = effect.edgeStrength;
+                    outlinePass.edgeGlow = effect.edgeGlow;
+                    outlinePass.edgeThickness = effect.edgeThickness;
+                    outlinePass.pulsePeriod = effect.pulsePeriod;
+                    outlinePass.visibleEdgeColor.fromArray(effect.visibleEdgeColor)
+                    outlinePass.hiddenEdgeColor.fromArray(effect.hiddenEdgeColor);
 
-                if (effect.renderHiddenEdge === undefined) {
-                    // COMPAT: < 2.17
-                    /**
-                     * if black color is used, then it's probably to not render
-                     * the hidden edge part at all, otherwise, it should be
-                     * rendered by default
-                     */
-                    const blackColorUsed = effect.hiddenEdgeColor[0] === 0.0
+                    if (effect.renderHiddenEdge === undefined) {
+                        // COMPAT: < 2.17
+                        /**
+                         * if black color is used, then it's probably to not render
+                         * the hidden edge part at all, otherwise, it should be
+                         * rendered by default
+                         */
+                        const blackColorUsed = effect.hiddenEdgeColor[0] === 0.0
                             && effect.hiddenEdgeColor[1] === 0.0
                             && effect.hiddenEdgeColor[2] === 0.0;
-                    outlinePass.hiddenEdgeColor.setW(Number(!blackColorUsed));
-                } else {
-                    outlinePass.hiddenEdgeColor.setW(Number(effect.renderHiddenEdge));
-                }
-                break;
-
-            case 'ssao':
-                if (!Detector.checkDepthTex(this.renderer)) {
-                    console.warn('v3d.App: disabling SSAO since your hardware does not support depth textures');
+                        outlinePass.hiddenEdgeColor.setW(Number(!blackColorUsed));
+                    } else {
+                        outlinePass.hiddenEdgeColor.setW(Number(effect.renderHiddenEdge));
+                    }
                     break;
-                }
 
-                if (!Detector.checkFloatTex(this.renderer, false)) {
-                    console.warn('v3d.App: disabling SSAO since your hardware does not support float textures');
+                case 'ssao':
+                    if (!Detector.checkDepthTex(this.renderer)) {
+                        console.warn('v3d.App: disabling SSAO since your hardware does not support depth textures');
+                        break;
+                    }
+
+                    if (!Detector.checkFloatTex(this.renderer, false)) {
+                        console.warn('v3d.App: disabling SSAO since your hardware does not support float textures');
+                        break;
+                    }
+
+                    let ssaoPass;
+
+                    if (!this.postprocessing.ssaoPass) {
+                        ssaoPass = new SSAOPass(this.scene, this.camera, this.getWidth(), this.getHeight());
+                        composer.insertPass(ssaoPass, insertIndex);
+                        this.postprocessing.ssaoPass = ssaoPass;
+                    } else
+                        ssaoPass = this.postprocessing.ssaoPass;
+
+                    ssaoPass.kernelRadius = effect.radius;
+                    ssaoPass.minDistance = effect.minDistance || 0.005;
+                    ssaoPass.maxDistance = effect.maxDistance || 0.1;
+
                     break;
-                }
+                case 'ssr':
+                    if (!Detector.checkHalfFloatTex(this.renderer, false)) {
+                        console.warn('v3d.App: disabling SSR since your hardware does not support half float textures');
+                        break;
+                    }
 
-                let ssaoPass;
+                    let useRefract = false;
 
-                if (!this.postprocessing.ssaoPass) {
-                    ssaoPass = new SSAOPass(this.scene, this.camera, this.getWidth(), this.getHeight());
-                    composer.insertPass(ssaoPass, insertIndex);
-                    this.postprocessing.ssaoPass = ssaoPass;
-                } else
-                    ssaoPass = this.postprocessing.ssaoPass;
+                    if (isDef(effect.useRefract))
+                        useRefract = effect.useRefract;
 
-                ssaoPass.kernelRadius = effect.radius;
-                ssaoPass.minDistance = effect.minDistance || 0.005;
-                ssaoPass.maxDistance = effect.maxDistance || 0.1;
+                    let ssrPass;
 
-                break;
-            case 'ssr':
-                if (!Detector.checkHalfFloatTex(this.renderer, false)) {
-                    console.warn('v3d.App: disabling SSR since your hardware does not support half float textures');
-                    break;
-                }
-
-                let useRefract = false;
-
-                if (isDef(effect.useRefract))
-                    useRefract = effect.useRefract;
-
-                let ssrPass;
-
-                if (!(useRefract ? this.postprocessing.ssrPassRefract : this.postprocessing.ssrPassReflect)) {
-                    ssrPass = new SSRPass(this.scene, this.camera);
-                    composer.insertPassAfter(ssrPass, [
+                    if (!(useRefract ? this.postprocessing.ssrPassRefract : this.postprocessing.ssrPassReflect)) {
+                        ssrPass = new SSRPass(this.scene, this.camera);
+                        composer.insertPassAfter(ssrPass, [
                             this.postprocessing.renderPass,
                             this.postprocessing.ssrPassRefract,
                             this.postprocessing.ssrPassReflect]);
-                    if (useRefract)
-                        this.postprocessing.ssrPassRefract = ssrPass;
-                    else
-                        this.postprocessing.ssrPassReflect = ssrPass;
-                } else {
-                    ssrPass = useRefract ? this.postprocessing.ssrPassRefract :
+                        if (useRefract)
+                            this.postprocessing.ssrPassRefract = ssrPass;
+                        else
+                            this.postprocessing.ssrPassReflect = ssrPass;
+                    } else {
+                        ssrPass = useRefract ? this.postprocessing.ssrPassRefract :
                             this.postprocessing.ssrPassReflect;
-                }
+                    }
 
-                ssrPass.useRefract = useRefract;
+                    ssrPass.useRefract = useRefract;
 
-                if (isDef(effect.objects))
-                    ssrPass.objects = effect.objects;
-                if (isDef(effect.intensity))
-                    ssrPass.intensity = effect.intensity;
-                if (isDef(effect.steps))
-                    ssrPass.steps = effect.steps;
-                if (isDef(effect.stride))
-                    ssrPass.stride = effect.stride;
-                if (isDef(effect.binarySearchSteps))
-                    ssrPass.binarySearchSteps = effect.binarySearchSteps;
-                if (isDef(effect.renderTargetScale))
-                    ssrPass.renderTargetScale = effect.renderTargetScale;
-                if (isDef(effect.thickness))
-                    ssrPass.thickness = effect.thickness;
-                if (isDef(effect.maxDistance))
-                    ssrPass.maxDistance = effect.maxDistance;
-                if (isDef(effect.jitter))
-                    ssrPass.jitter = effect.jitter;
-                if (isDef(effect.renderAfter))
-                    ssrPass.renderAfter = effect.renderAfter;
-                if (isDef(effect.simpleRefraction))
-                    ssrPass.simpleRefraction = effect.simpleRefraction;
+                    if (isDef(effect.objects))
+                        ssrPass.objects = effect.objects;
+                    if (isDef(effect.intensity))
+                        ssrPass.intensity = effect.intensity;
+                    if (isDef(effect.steps))
+                        ssrPass.steps = effect.steps;
+                    if (isDef(effect.stride))
+                        ssrPass.stride = effect.stride;
+                    if (isDef(effect.binarySearchSteps))
+                        ssrPass.binarySearchSteps = effect.binarySearchSteps;
+                    if (isDef(effect.renderTargetScale))
+                        ssrPass.renderTargetScale = effect.renderTargetScale;
+                    if (isDef(effect.thickness))
+                        ssrPass.thickness = effect.thickness;
+                    if (isDef(effect.maxDistance))
+                        ssrPass.maxDistance = effect.maxDistance;
+                    if (isDef(effect.jitter))
+                        ssrPass.jitter = effect.jitter;
+                    if (isDef(effect.renderAfter))
+                        ssrPass.renderAfter = effect.renderAfter;
+                    if (isDef(effect.simpleRefraction))
+                        ssrPass.simpleRefraction = effect.simpleRefraction;
 
-                // NOTE: temporary
-                if (this.onResize) this.onResize();
+                    // NOTE: temporary
+                    if (this.onResize) this.onResize();
 
-                break;
-            default:
-                console.error('v3d.App: wrong postprocessing effect');
-                break;
+                    break;
+                default:
+                    console.error('v3d.App: wrong postprocessing effect');
+                    break;
             }
         }
 
@@ -1600,12 +1600,12 @@ class App extends EventDispatcher {
             return;
 
         const passesToRemove = ['bloomPass',
-                              'brightnessContrastPass',
-                              'bokehPass',
-                              'grayscalePass',
-                              'ssaoPass',
-                              'ssrPassReflect',
-                              'ssrPassRefract'];
+            'brightnessContrastPass',
+            'bokehPass',
+            'grayscalePass',
+            'ssaoPass',
+            'ssrPassReflect',
+            'ssrPassRefract'];
 
         if (!keepOutline)
             passesToRemove.push('outlinePass');
@@ -1651,7 +1651,7 @@ class App extends EventDispatcher {
 
         // prevents annotation jitter
         const scope = this;
-        this.scene.traverse(function(obj) {
+        this.scene.traverse(function (obj) {
             if (obj.isAnnotationControl) {
                 obj.update(scope.camera);
                 obj.doUpdate = !Boolean(sampleLevel);
@@ -1669,13 +1669,13 @@ class App extends EventDispatcher {
                 this.postprocessing.ssaaRenderPass = ssaaRenderPass;
 
                 if (iterative) {
-                    ssaaRenderPass.addEventListener('iteration', function(event) {
+                    ssaaRenderPass.addEventListener('iteration', function (event) {
                         if (event.frame == (sampleLevel * sampleLevel - 1)) {
                             composer.enableAllPasses();
                             composer.renderToScreen = true;
                             // force it, since it maybe the last iteration rendered directly to screen
                             // as such no assignment in composer.render() will happen
-                            composer.passes[composer.passes.length-1].renderToScreen = true;
+                            composer.passes[composer.passes.length - 1].renderToScreen = true;
                             scope.disableRenderTrigger = 1;
                         }
                     });
@@ -1692,7 +1692,7 @@ class App extends EventDispatcher {
 
             // disable FXAA if any
             if (this.postprocessing.fxaaPass)
-                composer.passes.splice(composer.passes.length-1, 1);
+                composer.passes.splice(composer.passes.length - 1, 1);
 
             if (iterative) {
                 ssaaRenderPass.iterative = true;
@@ -1727,6 +1727,10 @@ class App extends EventDispatcher {
         }
     }
 
+    /**
+     * 从指定的材质更新世界环境。此类材质通常存储在Scene.worldMaterial属性中。
+     * @param {MeshNodeMaterial} wMat 
+     */
     updateEnvironment(wMat) {
         const xrEnabledSave = this.renderer.xr.enabled;
         this.renderer.xr.enabled = false;
@@ -1749,7 +1753,7 @@ class App extends EventDispatcher {
 
         if (this.scene.background !== null && this.scene.background.isSceneBackground) {
             this.scene.background.data = RenderUtils.renderWorldNodeMatToCubemap(
-                    this.renderer, wMat, this.worldCubemapRes, {
+                this.renderer, wMat, this.worldCubemapRes, {
                 encoding: sRGBEncoding,
                 format: RGBAFormat,
                 generateMipmaps: true,
@@ -1767,7 +1771,7 @@ class App extends EventDispatcher {
              * this one.
              */
             new PMREMGenerator(this.renderer, this._pmremMaxTileSize, true)
-                    .compileCubemapShader();
+                .compileCubemapShader();
         }
 
         this._prepareEnvMapProbeWorld();
@@ -1817,7 +1821,7 @@ class App extends EventDispatcher {
         // internal blur render targets are supposed to be linear as per options
         // passed to .fromCubeRenderTarget()
         const pmremGenerator = new PMREMGenerator(this.renderer,
-                this._pmremMaxTileSize, true);
+            this._pmremMaxTileSize, true);
 
         // don't flip WebGLCubeRenderTarget textures along the X coordinate
         pmremGenerator.flipCubemapX = false;
@@ -1832,9 +1836,9 @@ class App extends EventDispatcher {
 
     initWebXR(mode, referenceSpaceType, successCb, failureCb, exitCb, options) {
 
-        successCb = successCb || function() {};
-        failureCb = failureCb || function() {};
-        exitCb = exitCb || function() {};
+        successCb = successCb || function () { };
+        failureCb = failureCb || function () { };
+        exitCb = exitCb || function () { };
         options = options || {};
 
         const scope = this;
@@ -1870,7 +1874,7 @@ class App extends EventDispatcher {
 
             if (inputSource.targetRayMode == 'tracked-pointer') {
                 const geometry = new BufferGeometry().setFromPoints([new Vector3(0, 0, 0),
-                        new Vector3(0, 0, -1)]);
+                new Vector3(0, 0, -1)]);
 
                 const line = new Line(geometry);
                 line.name = controller.name + '_RAY';
@@ -1899,7 +1903,7 @@ class App extends EventDispatcher {
 
             const controller = event.target;
 
-            for (let i = controller.children.length-1; i >= 0; i--) {
+            for (let i = controller.children.length - 1; i >= 0; i--) {
                 const child = controller.children[i];
 
                 // only ray/reticle, do not remove user-added objects
@@ -1924,7 +1928,7 @@ class App extends EventDispatcher {
             }
         }
 
-        navigator.xr.requestSession(mode, opts).then(function(session) {
+        navigator.xr.requestSession(mode, opts).then(function (session) {
 
             scope._postprocessingSave = scope.postprocessing;
             scope.postprocessing = null;
@@ -1958,8 +1962,8 @@ class App extends EventDispatcher {
 
             // HACK: sync canvas size with container, which is used as the overlay element
             if (options.domOverlay) {
-                scope.renderer.xr.addEventListener('sessionstart', function() {
-                    setTimeout(function() {
+                scope.renderer.xr.addEventListener('sessionstart', function () {
+                    setTimeout(function () {
                         scope.renderer.domElement.style.width = scope.getWidth() + 'px'
                         scope.renderer.domElement.style.height = scope.getHeight() + 'px';
                     }, 300);
