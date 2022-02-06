@@ -7,3 +7,5 @@
 
 [Three.js + Sculpt.js demo](https://oliverxh.github.io/demo/threejs-sculptjs.html)
 
+[Ammo.js GImpact demo](https://oliverxh.github.io/demo/gimpact.html)
+
