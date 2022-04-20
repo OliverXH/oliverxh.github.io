@@ -144,7 +144,7 @@
         app.enablePostprocessing([{
             type: 'bloom',
             threshold: 0.0,
-            strength: 0.5,
+            strength: 1,
             radius: 0.0
         }]);
         app.debug.ui.add(app.postprocessing.bloomPass, 'threshold').step(0.01).min(0).max(1);
