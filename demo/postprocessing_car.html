@@ -31,7 +31,10 @@
             antialias: true,
         });
 
-        app.camera.position.set(3, 2, 5);
+        app.camera.position.set(2, 2, 3);
+
+        let group = new THREE.Group();
+        app.root.add(group);
 
         // ==================================
 
@@ -45,8 +48,8 @@
         light[1].position.set(-5, 5, 0);
         light[1].castShadow = true;
 
-        app.root.add(light[0]);
-        app.root.add(light[1]);
+        group.add(light[0]);
+        group.add(light[1]);
 
         // ==================================
 
@@ -56,7 +59,7 @@
         cubeCamera = new THREE.CubeCamera(1, 1000, cubeRenderTarget);
         app.root.environment = cubeRenderTarget.texture;
         app.on('update', (dt) => {
-            cubeCamera.update(app.renderer, app.root);
+            cubeCamera.update(app.renderer, group);
         });
 
         let dataController = {
@@ -86,7 +89,7 @@
             );
             ground.rotation.x = -Math.PI * 0.5;
             ground.receiveShadow = true;
-            app.root.add(ground);
+            group.add(ground);
 
         });
 
@@ -144,7 +147,7 @@
         app.enablePostprocessing([{
             type: 'bloom',
             threshold: 0.0,
-            strength: 1,
+            strength: 1.4,
             radius: 0.0
         }]);
         app.debug.ui.add(app.postprocessing.bloomPass, 'threshold').step(0.01).min(0).max(1);
@@ -165,7 +168,7 @@
 
             let mesh = new THREE.Mesh(torusGeometry, material);
             mesh.receiveShadow = true;
-            app.root.add(mesh);
+            group.add(mesh);
 
             meshes[i] = mesh;
         }
