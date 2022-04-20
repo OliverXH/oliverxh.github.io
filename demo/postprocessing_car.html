@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link type="text/css" rel="stylesheet" href="./css/main.css">
+</head>
+
+<body>
+
+    <script async src="./js/es-module-shims.js"></script>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://threejs.org/build/three.module.js",
+                "lil-gui": "https://threejs.org/examples/jsm/libs/lil-gui.module.min.js"
+            }
+        }
+    </script>
+
+    <script type="module">
+
+        import * as THREE from "three";
+        import { Application } from "./js/app.module.js";
+
+        let app = new Application(document.body, {
+            antialias: true,
+        });
+
+        app.camera.position.set(3, 2, 5);
+
+        // ==================================
+
+        let light = new Array(2);
+
+        light[0] = new THREE.SpotLight(new THREE.Color(1, 0.25, 0.7), 1.5, 0, 0.6, 0.5);
+        light[0].position.set(5, 5, 0);
+        light[0].castShadow = true;
+
+        light[1] = new THREE.SpotLight(new THREE.Color(0.14, 0.5, 1), 2, 0, 0.6, 0.5);
+        light[1].position.set(-5, 5, 0);
+        light[1].castShadow = true;
+
+        app.root.add(light[0]);
+        app.root.add(light[1]);
+
+        // ==================================
+
+        let cubeRenderTarget, cubeCamera;
+        cubeRenderTarget = new THREE.WebGLCubeRenderTarget(256);
+        cubeRenderTarget.texture.type = THREE.HalfFloatType;
+        cubeCamera = new THREE.CubeCamera(1, 1000, cubeRenderTarget);
+        app.root.environment = cubeRenderTarget.texture;
+        app.on('update', (dt) => {
+            cubeCamera.update(app.renderer, app.root);
+        });
+
+        let dataController = {
+            rotateSpeed: 1.58
+        }
+
+        app.assetManager.once('end', () => {
+
+            let assets = app.assetManager.assets;
+
+            [assets.normalMap, assets.roughnessMap].forEach((t) => {
+                t.wrapS = THREE.RepeatWrapping;
+                t.wrapT = THREE.RepeatWrapping;
+                t.repeat.set(5, 5);
+                t.offset.set(0, 0);
+            });
+
+            assets.normalMap.encoding = THREE.LinearEncoding;
+
+            let ground = new THREE.Mesh(
+                new THREE.PlaneGeometry(30, 30),
+                new THREE.MeshStandardMaterial({
+                    color: new THREE.Color(0.015, 0.015, 0.015),
+                    normalMap: assets.normalMap,
+                    roughnessMap: assets.roughnessMap
+                })
+            );
+            ground.rotation.x = -Math.PI * 0.5;
+            ground.receiveShadow = true;
+            app.root.add(ground);
+
+        });
+
+        app.assetManager.once('end', () => {
+
+            let assets = app.assetManager.assets;
+
+            // ===============
+
+            let model = assets.car.scene;
+
+            app.root.add(model);
+
+            model.traverse((object) => {
+                if (object instanceof THREE.Mesh) {
+                    object.castShadow = true;
+                    // object.receiveShadow = true;
+                    object.material.envMapIntensity = 10;
+                }
+            });
+
+            // app.debug.ui.add(dataController, 'rotateSpeed').name('Rotate Speed').step(0.01).min(0).max(2);
+
+            let group = model.children[0].children[0].children[0];
+
+            let elapsed = 0;
+
+            app.on('update', (dt) => {
+
+                elapsed += dt;
+
+                group.children[8].rotation.x += dt * dataController.rotateSpeed;
+                group.children[9].rotation.x += dt * dataController.rotateSpeed;
+                group.children[10].rotation.x += dt * dataController.rotateSpeed;
+                group.children[11].rotation.x += dt * dataController.rotateSpeed;
+
+                let t = elapsed * 0.128;
+                assets.roughnessMap.offset.set(0, -t % 1);
+                assets.normalMap.offset.set(0, -t % 1);
+            });
+
+        });
+
+        app.assetManager.load([{
+            name: 'car',
+            items: [
+                { name: 'car', url: './asset/gltf/post_car.glb' },
+                { name: 'normalMap', url: './asset/texture/terrain-normal.jpg', type: 'texture' },
+                { name: 'roughnessMap', url: './asset/texture/terrain-roughness.jpg', type: 'texture' },
+            ]
+        }]);
+
+        // ==================================
+
+        app.enablePostprocessing([{
+            type: 'bloom',
+            threshold: 0.0,
+            strength: 0.5,
+            radius: 0.0
+        }]);
+        app.debug.ui.add(app.postprocessing.bloomPass, 'threshold').step(0.01).min(0).max(1);
+        app.debug.ui.add(app.postprocessing.bloomPass, 'strength').step(0.01).min(0).max(5);
+        app.debug.ui.add(app.postprocessing.bloomPass, 'radius').step(0.01).min(0).max(1);
+
+        // ==================================
+
+        let torusGeometry = new THREE.TorusGeometry(3.35, 0.05, 16, 100);
+
+        let meshes = new Array(14);
+        for (let i = 0; i < 14; i++) {
+
+            let material = new THREE.MeshStandardMaterial({
+                color: 'black',
+                emissive: new THREE.Color(4, 0.1, 0.4)
+            });
+
+            let mesh = new THREE.Mesh(torusGeometry, material);
+            mesh.receiveShadow = true;
+            app.root.add(mesh);
+
+            meshes[i] = mesh;
+        }
+
+        let elapsed = 0;
+
+        app.on('update', (dt) => {
+            elapsed += dt;
+            for (let i = 0; i < 14; i++) {
+                let mesh = meshes[i];
+                let z = (i - 7) * 3.5 + ((elapsed * 0.4) % 3.5) * 2;
+                let az = Math.abs(z);
+                mesh.position.set(0, 0, -z);
+                mesh.scale.set(1 - az * 0.04, 1 - az * 0.04, 1 - az * 0.04);
+
+                let colorScale = 1;
+                let dist = Math.abs(z);
+                if (dist > 2) {
+                    colorScale = 1 - (Math.min(dist, 12) - 2) / 10;
+                }
+                let cs = colorScale * 0.5;
+
+                if (i % 2 == 1) {
+                    mesh.material.emissive = new THREE.Color(6 * cs, 0.15 * cs, 0.7 * cs);
+                } else {
+                    mesh.material.emissive = new THREE.Color(0.1 * cs, 0.7 * cs, 3 * cs);
+                }
+
+                // console.log(mesh.material.emissive);
+
+            }
+        });
+
+        // ==================================
+
+        // app.fitCameraToScene();
+
+        app.start();
+
+    </script>
+
+</body>
+
+</html>
