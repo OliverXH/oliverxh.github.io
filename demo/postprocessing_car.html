@@ -7,6 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
     <link type="text/css" rel="stylesheet" href="./css/main.css">
+    <link type="text/css" rel="stylesheet" href="./css/loading.css">
 </head>
 
 <body>
@@ -26,6 +27,10 @@
 
         import * as THREE from "three";
         import { Application } from "./js/app.module.js";
+
+        import { LoadingScreen } from "./js/loading-screen.js";
+
+        let loadingScreen = new LoadingScreen();
 
         let app = new Application(document.body, {
             antialias: true,
@@ -67,6 +72,9 @@
         }
 
         app.assetManager.once('end', () => {
+
+            loadingScreen.end();
+            app.start();
 
             let assets = app.assetManager.assets;
 
@@ -148,7 +156,7 @@
         app.enablePostprocessing([{
             type: 'bloom',
             threshold: 0.0,
-            strength: 1.4,
+            strength: 1.2,
             radius: 0.0
         }]);
         app.debug.ui.add(app.postprocessing.bloomPass, 'threshold').step(0.01).min(0).max(1);
@@ -168,7 +176,7 @@
             });
 
             let mesh = new THREE.Mesh(torusGeometry, material);
-            mesh.receiveShadow = true;
+            mesh.castShadow = true;
             group.add(mesh);
 
             meshes[i] = mesh;
@@ -198,16 +206,89 @@
                     mesh.material.emissive = new THREE.Color(0.1 * cs, 0.7 * cs, 3 * cs);
                 }
 
-                // console.log(mesh.material.emissive);
-
             }
         });
 
         // ==================================
 
-        // app.fitCameraToScene();
+        function getInitialPosition() {
+            let v = new THREE.Vector3((Math.random() * 2 - 1) * 3, Math.random() * 2.5 + 0.1, (Math.random() * 2 - 1) * 15);
+            if (v.x < 0) v.x -= 1.75;
+            if (v.x > 0) v.x += 1.75;
 
-        app.start();
+            return v;
+        }
+
+        function resetPosition(pos) {
+            let v = new THREE.Vector3((Math.random() * 2 - 1) * 3, Math.random() * 2.5 + 0.1, Math.random() * 10 + 10);
+            if (v.x < 0) v.x -= 1.75;
+            if (v.x > 0) v.x += 1.75;
+
+            pos.copy(v);
+        }
+
+        function Box(color = 0xffffff) {
+
+            let time = 0;
+            const initialPosition = getInitialPosition();
+            const xRotSpeed = Math.random();
+            const yRotSpeed = Math.random();
+            const scale = Math.pow(Math.random(), 2.0) * 0.5 + 0.05;
+
+            const box = new THREE.Mesh(
+                new THREE.BoxGeometry(1, 1, 1),
+                new THREE.MeshStandardMaterial({
+                    color: color,
+                    envMapIntensity: 0.5
+                })
+            )
+            box.rotation.x = Math.PI * 0.5;
+            box.scale.setScalar(scale);
+            box.castShadow = true;
+
+            this.update = function (dt) {
+                time += dt * 1.2;
+                let newZ = initialPosition.z - time;
+
+                if (newZ < -10) {
+                    resetPosition(initialPosition);
+                    time = 0;
+                }
+
+                box.position.set(
+                    initialPosition.x,
+                    initialPosition.y,
+                    newZ,
+                );
+
+                box.rotation.x += dt * xRotSpeed;
+                box.rotation.y += dt * yRotSpeed;
+
+            }
+
+            app.root.add(box);
+            // return box;
+        }
+
+        function Boxes() {
+            let boxes = [];
+            for (let i = 0; i < 100; i++) {
+                let box = new Box(
+                    i % 2 === 0 ? new THREE.Color(0.4, 0.1, 0.1) : new THREE.Color(0.05, 0.15, 0.4)
+                );
+                boxes.push(box);
+            }
+            app.on('update', (dt) => {
+                boxes.forEach(box => {
+                    box.update(dt);
+                });
+            });
+        }
+        Boxes();
+
+        // ==================================
+
+        // app.start();
 
     </script>
 
