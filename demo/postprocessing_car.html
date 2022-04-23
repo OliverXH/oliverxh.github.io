@@ -28,6 +28,8 @@
         import * as THREE from "three";
         import { Application } from "./js/app.module.js";
 
+        import { MeshReflectorMaterial } from "./js/reflect-mat.js";
+
         import { LoadingScreen } from "./js/loading-screen.js";
 
         let loadingScreen = new LoadingScreen();
@@ -87,18 +89,37 @@
 
             assets.normalMap.encoding = THREE.LinearEncoding;
 
-            let ground = new THREE.Mesh(
-                new THREE.PlaneGeometry(30, 30),
-                new THREE.MeshStandardMaterial({
-                    color: new THREE.Color(0.015, 0.015, 0.015),
-                    normalMap: assets.normalMap,
-                    roughnessMap: assets.roughnessMap
-                })
-            );
+            let ground = new THREE.Mesh( new THREE.PlaneGeometry( 30, 30 ) );
             ground.rotation.x = -Math.PI * 0.5;
             ground.receiveShadow = true;
-            // group.add(ground);
-            app.root.add(ground);
+            app.root.add( ground );
+
+            ground.material = new MeshReflectorMaterial( app.renderer, app.camera, app.root, ground, {
+                dithering: true,
+                blur: [ 1000, 1000 ], 
+                mixBlur: 30, 
+                mixStrength: 80, 
+                mixContrast: 1, 
+                resolution: 1024,
+                mirror: 0, 
+                depthScale: 0.01,
+                minDepthThreshold: 0.9, 
+                maxDepthThreshold: 1, 
+                depthToBlurRatioBias: 0.25, 
+                debug: 0,
+                reflectorOffset: 0.2,
+            } );
+
+            ground.material.setValues( {
+                envMapIntensity: 0,
+                color: new THREE.Color( 0.1, 0.1, 0.1 ),
+                roughnessMap: assets.roughnessMap,
+                normalMap: assets.normalMap,
+            } )
+
+            app.on( 'update', () => {
+                ground.material.update();
+            } );
 
         });
 
