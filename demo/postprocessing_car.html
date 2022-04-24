@@ -18,7 +18,8 @@
         {
             "imports": {
                 "three": "https://threejs.org/build/three.module.js",
-                "lil-gui": "https://threejs.org/examples/jsm/libs/lil-gui.module.min.js"
+                "lil-gui": "https://threejs.org/examples/jsm/libs/lil-gui.module.min.js",
+                "postprocessing": "./js/postprocessing.esm.js"
             }
         }
     </script>
@@ -28,64 +29,84 @@
         import * as THREE from "three";
         import { Application } from "./js/app.module.js";
 
+        import { EffectComposer, RenderPass, EffectPass, BlendFunction, BloomEffect, ChromaticAberrationEffect, LambdaPass } from "postprocessing";
+
         import { MeshReflectorMaterial } from "./js/reflect-mat.js";
 
         import { LoadingScreen } from "./js/loading-screen.js";
 
         let loadingScreen = new LoadingScreen();
 
-        let app = new Application(document.body, {
+        let app = new Application( document.body, {
             antialias: true,
-        });
+        } );
 
-        app.camera.position.set(2, 2, 3);
+        app.camera.position.set( 2, 2, 3 );
 
         let group = new THREE.Group();
-        app.root.add(group);
+        app.root.add( group );
 
         // ==================================
 
-        let light = new Array(2);
+        let light = new Array( 2 );
 
-        light[0] = new THREE.SpotLight(new THREE.Color(1, 0.25, 0.7), 1.5, 0, 0.6, 0.5);
-        light[0].position.set(5, 5, 0);
-        light[0].castShadow = true;
+        light[ 0 ] = new THREE.SpotLight( new THREE.Color( 1, 0.25, 0.7 ), 1.5, 20, 0.6, 0.5 );
+        light[ 0 ].position.set( 5, 5, 0 );
+        light[ 0 ].castShadow = true;
 
-        light[1] = new THREE.SpotLight(new THREE.Color(0.14, 0.5, 1), 2, 0, 0.6, 0.5);
-        light[1].position.set(-5, 5, 0);
-        light[1].castShadow = true;
+        light[ 1 ] = new THREE.SpotLight( new THREE.Color( 0.14, 0.5, 1 ), 2, 20, 0.6, 0.5 );
+        light[ 1 ].position.set( -5, 5, 0 );
+        light[ 1 ].castShadow = true;
 
-        group.add(light[0]);
-        group.add(light[1]);
+        group.add( light[ 0 ] );
+        group.add( light[ 1 ] );
 
         // ==================================
 
-        let cubeRenderTarget, cubeCamera;
-        cubeRenderTarget = new THREE.WebGLCubeRenderTarget(256);
-        cubeRenderTarget.texture.type = THREE.HalfFloatType;
-        cubeCamera = new THREE.CubeCamera(1, 1000, cubeRenderTarget);
-        app.root.environment = cubeRenderTarget.texture;
-        app.on('update', (dt) => {
-            cubeCamera.update(app.renderer, group);
-        });
+        // Cube Camera
+
+        const cubeRenderTarget = new THREE.WebGLCubeRenderTarget( 256, {
+            minFilter: THREE.LinearMipmapLinearFilter,
+            generateMipmaps: true,
+            type: THREE.HalfFloatType
+        } );
+
+        const cubeCamera = new THREE.CubeCamera( 0.3, 2000, cubeRenderTarget );
+
+        let composerRenderer = null;
+
+        app.on( 'update', () => {
+
+            if ( app.postprocessing && !composerRenderer )
+                composerRenderer = app.postprocessing.composer.getRenderer();
+
+            composerRenderer && ( composerRenderer.autoClear = true );
+
+            cubeCamera.update( app.renderer, group );
+
+            composerRenderer && ( composerRenderer.autoClear = false );
+
+        } );
+
+        // ==================================
 
         let dataController = {
             rotateSpeed: 1.58
         }
 
-        app.assetManager.once('end', () => {
+        app.assetManager.once( 'end', () => {
 
             loadingScreen.end();
             app.start();
 
             let assets = app.assetManager.assets;
 
-            [assets.normalMap, assets.roughnessMap].forEach((t) => {
+            [ assets.normalMap, assets.roughnessMap ].forEach( ( t ) => {
                 t.wrapS = THREE.RepeatWrapping;
                 t.wrapT = THREE.RepeatWrapping;
-                t.repeat.set(5, 5);
-                t.offset.set(0, 0);
-            });
+                t.repeat.set( 5, 5 );
+                t.offset.set( 0, 0 );
+            } );
 
             assets.normalMap.encoding = THREE.LinearEncoding;
 
@@ -96,16 +117,16 @@
 
             ground.material = new MeshReflectorMaterial( app.renderer, app.camera, app.root, ground, {
                 dithering: true,
-                blur: [ 1000, 1000 ], 
-                mixBlur: 30, 
-                mixStrength: 80, 
-                mixContrast: 1, 
+                blur: [ 1000, 1000 ],
+                mixBlur: 30,
+                mixStrength: 80,
+                mixContrast: 1,
                 resolution: 1024,
-                mirror: 0, 
+                mirror: 0,
                 depthScale: 0.01,
-                minDepthThreshold: 0.9, 
-                maxDepthThreshold: 1, 
-                depthToBlurRatioBias: 0.25, 
+                minDepthThreshold: 0.9,
+                maxDepthThreshold: 1,
+                depthToBlurRatioBias: 0.25,
                 debug: 0,
                 reflectorOffset: 0.2,
             } );
@@ -121,9 +142,9 @@
                 ground.material.update();
             } );
 
-        });
+        } );
 
-        app.assetManager.once('end', () => {
+        app.assetManager.once( 'end', () => {
 
             let assets = app.assetManager.assets;
 
@@ -131,148 +152,165 @@
 
             let model = assets.car.scene;
 
-            app.root.add(model);
+            app.root.add( model );
 
-            model.traverse((object) => {
-                if (object instanceof THREE.Mesh) {
+            model.traverse( ( object ) => {
+                if ( object instanceof THREE.Mesh ) {
                     object.castShadow = true;
                     // object.receiveShadow = true;
-                    object.material.envMapIntensity = 10;
+                    object.material.envMapIntensity = 20;
+                    object.material.envMap = cubeRenderTarget.texture;
                 }
-            });
+            } );
 
             // app.debug.ui.add(dataController, 'rotateSpeed').name('Rotate Speed').step(0.01).min(0).max(2);
 
-            let group = model.children[0].children[0].children[0];
+            let group = model.children[ 0 ].children[ 0 ].children[ 0 ];
 
             let elapsed = 0;
 
-            app.on('update', (dt) => {
+            app.on( 'update', ( dt ) => {
 
                 elapsed += dt;
 
-                group.children[8].rotation.x += dt * dataController.rotateSpeed;
-                group.children[9].rotation.x += dt * dataController.rotateSpeed;
-                group.children[10].rotation.x += dt * dataController.rotateSpeed;
-                group.children[11].rotation.x += dt * dataController.rotateSpeed;
+                group.children[ 8 ].rotation.x += dt * dataController.rotateSpeed;
+                group.children[ 9 ].rotation.x += dt * dataController.rotateSpeed;
+                group.children[ 10 ].rotation.x += dt * dataController.rotateSpeed;
+                group.children[ 11 ].rotation.x += dt * dataController.rotateSpeed;
 
                 let t = elapsed * 0.128;
-                assets.roughnessMap.offset.set(0, -t % 1);
-                assets.normalMap.offset.set(0, -t % 1);
-            });
+                assets.roughnessMap.offset.set( 0, -t % 1 );
+                assets.normalMap.offset.set( 0, -t % 1 );
+            } );
 
-        });
+        } );
 
-        app.assetManager.load([{
+        app.assetManager.load( [ {
             name: 'car',
             items: [
                 { name: 'car', url: './asset/gltf/post_car.glb' },
                 { name: 'normalMap', url: './asset/texture/terrain-normal.jpg', type: 'texture' },
                 { name: 'roughnessMap', url: './asset/texture/terrain-roughness.jpg', type: 'texture' },
             ]
-        }]);
+        } ] );
 
         // ==================================
 
-        app.enablePostprocessing([{
-            type: 'bloom',
-            threshold: 0.0,
-            strength: 1.2,
-            radius: 0.0
-        }]);
-        app.debug.ui.add(app.postprocessing.bloomPass, 'threshold').step(0.01).min(0).max(1);
-        app.debug.ui.add(app.postprocessing.bloomPass, 'strength').step(0.01).min(0).max(5);
-        app.debug.ui.add(app.postprocessing.bloomPass, 'radius').step(0.01).min(0).max(1);
+        app.enablePostprocessing();
+
+        app.useEffect( [
+            new BloomEffect( {
+                blendFunction: BlendFunction.ADD,
+                intensity: 1.3,
+                width: 300,
+                height: 300,
+                kernelSize: 5,
+                luminanceThreshold: 0.15,
+                luminanceSmoothing: 0.025
+            } ),
+            new ChromaticAberrationEffect( {
+                blendFunction: BlendFunction.NORMAL, // blend mode
+                offset: [ 0.0005, 0.0012 ] // color offset
+            } )
+        ] );
+
+        const params = {
+            "intensity": app.postprocessing.BloomEffect.getIntensity()
+        }
+
+        app.debug.ui.add( params, 'intensity', 0.0, 3.0, 0.01 ).onChange( ( value ) => {
+            app.postprocessing.BloomEffect.setIntensity( Number( value ) );
+        } );
 
         // ==================================
 
-        let torusGeometry = new THREE.TorusGeometry(3.35, 0.05, 16, 100);
+        let torusGeometry = new THREE.TorusGeometry( 3.35, 0.05, 16, 100 );
 
-        let meshes = new Array(14);
-        for (let i = 0; i < 14; i++) {
+        let meshes = new Array( 14 );
+        for ( let i = 0; i < 14; i++ ) {
 
-            let material = new THREE.MeshStandardMaterial({
+            let material = new THREE.MeshStandardMaterial( {
                 color: 'black',
-                emissive: new THREE.Color(4, 0.1, 0.4)
-            });
+                emissive: new THREE.Color( 4, 0.1, 0.4 )
+            } );
 
-            let mesh = new THREE.Mesh(torusGeometry, material);
+            let mesh = new THREE.Mesh( torusGeometry, material );
             mesh.castShadow = true;
-            group.add(mesh);
+            group.add( mesh );
 
-            meshes[i] = mesh;
+            meshes[ i ] = mesh;
         }
 
         let elapsed = 0;
 
-        app.on('update', (dt) => {
+        app.on( 'update', ( dt ) => {
             elapsed += dt;
-            for (let i = 0; i < 14; i++) {
-                let mesh = meshes[i];
-                let z = (i - 7) * 3.5 + ((elapsed * 0.4) % 3.5) * 2;
-                let az = Math.abs(z);
-                mesh.position.set(0, 0, -z);
-                mesh.scale.set(1 - az * 0.04, 1 - az * 0.04, 1 - az * 0.04);
+            for ( let i = 0; i < 14; i++ ) {
+                let mesh = meshes[ i ];
+                let z = ( i - 7 ) * 3.5 + ( ( elapsed * 0.4 ) % 3.5 ) * 2;
+                let az = Math.abs( z );
+                mesh.position.set( 0, 0, -z );
+                mesh.scale.set( 1 - az * 0.04, 1 - az * 0.04, 1 - az * 0.04 );
 
                 let colorScale = 1;
-                let dist = Math.abs(z);
-                if (dist > 2) {
-                    colorScale = 1 - (Math.min(dist, 12) - 2) / 10;
+                let dist = Math.abs( z );
+                if ( dist > 2 ) {
+                    colorScale = 1 - ( Math.min( dist, 12 ) - 2 ) / 10;
                 }
                 let cs = colorScale * 0.5;
 
-                if (i % 2 == 1) {
-                    mesh.material.emissive = new THREE.Color(6 * cs, 0.15 * cs, 0.7 * cs);
+                if ( i % 2 == 1 ) {
+                    mesh.material.emissive = new THREE.Color( 6 * cs, 0.15 * cs, 0.7 * cs );
                 } else {
-                    mesh.material.emissive = new THREE.Color(0.1 * cs, 0.7 * cs, 3 * cs);
+                    mesh.material.emissive = new THREE.Color( 0.1 * cs, 0.7 * cs, 3 * cs );
                 }
 
             }
-        });
+        } );
 
         // ==================================
 
         function getInitialPosition() {
-            let v = new THREE.Vector3((Math.random() * 2 - 1) * 3, Math.random() * 2.5 + 0.1, (Math.random() * 2 - 1) * 15);
-            if (v.x < 0) v.x -= 1.75;
-            if (v.x > 0) v.x += 1.75;
+            let v = new THREE.Vector3( ( Math.random() * 2 - 1 ) * 3, Math.random() * 2.5 + 0.1, ( Math.random() * 2 - 1 ) * 15 );
+            if ( v.x < 0 ) v.x -= 1.75;
+            if ( v.x > 0 ) v.x += 1.75;
 
             return v;
         }
 
-        function resetPosition(pos) {
-            let v = new THREE.Vector3((Math.random() * 2 - 1) * 3, Math.random() * 2.5 + 0.1, Math.random() * 10 + 10);
-            if (v.x < 0) v.x -= 1.75;
-            if (v.x > 0) v.x += 1.75;
+        function resetPosition( pos ) {
+            let v = new THREE.Vector3( ( Math.random() * 2 - 1 ) * 3, Math.random() * 2.5 + 0.1, Math.random() * 10 + 10 );
+            if ( v.x < 0 ) v.x -= 1.75;
+            if ( v.x > 0 ) v.x += 1.75;
 
-            pos.copy(v);
+            pos.copy( v );
         }
 
-        function Box(color = 0xffffff) {
+        function Box( color = 0xffffff ) {
 
             let time = 0;
             const initialPosition = getInitialPosition();
             const xRotSpeed = Math.random();
             const yRotSpeed = Math.random();
-            const scale = Math.pow(Math.random(), 2.0) * 0.5 + 0.05;
+            const scale = Math.pow( Math.random(), 2.0 ) * 0.5 + 0.05;
 
             const box = new THREE.Mesh(
-                new THREE.BoxGeometry(1, 1, 1),
-                new THREE.MeshStandardMaterial({
+                new THREE.BoxGeometry( 1, 1, 1 ),
+                new THREE.MeshStandardMaterial( {
                     color: color,
                     envMapIntensity: 0.5
-                })
+                } )
             )
             box.rotation.x = Math.PI * 0.5;
-            box.scale.setScalar(scale);
+            box.scale.setScalar( scale );
             box.castShadow = true;
 
-            this.update = function (dt) {
+            this.update = function ( dt ) {
                 time += dt * 1.2;
                 let newZ = initialPosition.z - time;
 
-                if (newZ < -10) {
-                    resetPosition(initialPosition);
+                if ( newZ < -10 ) {
+                    resetPosition( initialPosition );
                     time = 0;
                 }
 
@@ -287,23 +325,23 @@
 
             }
 
-            app.root.add(box);
+            app.root.add( box );
             // return box;
         }
 
         function Boxes() {
             let boxes = [];
-            for (let i = 0; i < 100; i++) {
+            for ( let i = 0; i < 100; i++ ) {
                 let box = new Box(
-                    i % 2 === 0 ? new THREE.Color(0.4, 0.1, 0.1) : new THREE.Color(0.05, 0.15, 0.4)
+                    i % 2 === 0 ? new THREE.Color( 0.4, 0.1, 0.1 ) : new THREE.Color( 0.05, 0.15, 0.4 )
                 );
-                boxes.push(box);
+                boxes.push( box );
             }
-            app.on('update', (dt) => {
-                boxes.forEach(box => {
-                    box.update(dt);
-                });
-            });
+            app.on( 'update', ( dt ) => {
+                boxes.forEach( box => {
+                    box.update( dt );
+                } );
+            } );
         }
         Boxes();
 
