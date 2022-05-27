@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link type="text/css" rel="stylesheet" href="./css/main.css">
+    <link type="text/css" rel="stylesheet" href="./css/loading.css">
+</head>
+
+<body>
+
+    <script async src="./js/es-module-shims.js"></script>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://threejs.org/build/three.module.js",
+                "lil-gui": "https://threejs.org/examples/jsm/libs/lil-gui.module.min.js",
+                "postprocessing": "./js/postprocessing.esm.js"
+            }
+        }
+    </script>
+
+    <script type="module">
+
+        import * as THREE from "three";
+        import { Application } from "./js/app.module.js";
+
+        import { SurfaceMaterial } from "./js/SurfaceMaterial.js";
+
+        import { LoadingScreen } from "./js/loading-screen.js";
+
+        let app = new Application( document.body, {
+            antialias: true,
+            clearColor: 0xaaaaaa,
+            powerPreference: 'high-performance',
+            // keyboard: new Keyboard(window)
+        } );
+
+        // app.root.add( new THREE.GridHelper( 10, 10 ) );
+        // app.root.add( new THREE.AxesHelper( 100 ) );
+
+        app.root.add( new THREE.AmbientLight( 'white', 0.15 ) );
+
+        let light = new THREE.DirectionalLight( 'white' );
+        light.position.set( -1, 5, -1 );
+        // light.shadow.mapSize.width = 256;
+        // light.shadow.mapSize.height = 256;
+        light.castShadow = true;
+        app.root.add( light );
+        app.root.add( new THREE.DirectionalLightHelper( light, 1 ) );
+
+
+        // ==================================
+
+        let mesh;
+
+        let Shader = {
+            properties: {
+                '_Color:v3': new THREE.Color( 0xE5B700 ),
+                '_ColorDim:v3': new THREE.Color( 0xD9D9D9 ),
+                '_SelfShadingSize:t': 0.0,
+                '_ShadowEdgeSize:t': 0.05,
+                '_Flatness:t': 1.0,
+                // Specular
+                '_FlatSpecularSize:t': 0.1,
+                '_FlatSpecularEdgeSmoothness:t': 0.0,
+                '_FlatSpecularColor:v3': new THREE.Color( 0xffe764 ),
+                // Rim
+                '_FlatRimColor:v3': new THREE.Color( 0xffe764 ),
+                '_FlatRimLightAlign:t': 0.0,
+                '_FlatRimSize:t': 0.174,
+                '_FlatRimEdgeSmoothness:t': 0.279,
+                // Gradient
+                '_ColorGradient:v3': new THREE.Color( 0xff6e00 ),
+                '_GradientCenterX:t': 0.0,
+                '_GradientCenterY:t': 0.0,
+                '_GradientSize:t': 10.0,
+                '_GradientAngle:t': 0.0,
+
+            },
+            lightModel: /* glsl */``,
+            surfaceFunc: /* glsl */`
+
+float NdotLTransition(vec3 normal, vec3 lightDir, float selfShadingSize, float shadowEdgeSize, float flatness) {
+
+    // normal and lightDir are assumed to be normalized.
+    float NdotL = dot( normal, lightDir );
+    float angleDiff = saturate( ( NdotL * 0.5 + 0.5 ) - selfShadingSize );
+    float angleDiffTransition = smoothstep( 0.0, shadowEdgeSize, angleDiff ); 
+    return lerp( angleDiff, angleDiffTransition, flatness );
+
+}
+
+float NdotLTransitionPrimary( vec3 normal, vec3 lightDir ) {
+
+    return NdotLTransition( normal, lightDir, _SelfShadingSize, _ShadowEdgeSize, _Flatness );
+
+}
+
+void surface( Input IN, inout SurfaceOutput o ) {
+
+    vec3 lightDir = IN.lightDir;
+    vec3 viewDir = IN.viewDir;
+    vec3 Normal = IN.Normal;
+    vec3 worldPos = IN.Pos;
+
+    vec3 c = _Color;
+
+    float NdotLTPrimary = NdotLTransitionPrimary( Normal, lightDir );
+    c = lerp( _ColorDim, _Color, NdotLTPrimary );
+
+    // Gradient
+    float angleRadians = _GradientAngle / 180.0 * 3.14159265359;
+    float posGradRotated = (worldPos.x - _GradientCenterX) * sin(angleRadians) + 
+                            (worldPos.y - _GradientCenterY) * cos(angleRadians);
+    float gradientTop = _GradientCenterY + _GradientSize * 0.5;
+    float gradientFactor = saturate((gradientTop - posGradRotated) / _GradientSize);
+    c = lerp(c, _ColorGradient, gradientFactor);
+
+    // Rim
+    float rim = 1.0 - dot( viewDir, Normal );
+    float NdotL = dot( Normal, lightDir );
+    float rimLightAlign = _FlatRimLightAlign;
+    float rimSize = _FlatRimSize;
+    float rimSpread = 1.0 - rimSize - NdotL * rimLightAlign;
+    float rimEdgeSmooth = _FlatRimEdgeSmoothness;
+    float rimTransition = smoothstep( rimSpread - rimEdgeSmooth * 0.5, rimSpread + rimEdgeSmooth * 0.5, rim );
+    c = lerp( c, _FlatRimColor, rimTransition );
+    
+    // Specular
+    vec3 halfVector = normalize( lightDir + viewDir );
+    float NdotH = dot( Normal, halfVector ) * 0.5 + 0.5;
+    float specularSize = _FlatSpecularSize;
+    float specEdgeSmooth = _FlatSpecularEdgeSmoothness;
+    float specular = saturate( pow( NdotH, 100.0 * ( 1.0 - specularSize ) * ( 1.0 - specularSize ) ) );
+    float specularTransition = smoothstep( 0.5 - specEdgeSmooth * 0.1, 0.5 + specEdgeSmooth * 0.1, specular );
+    c = lerp( c, _FlatSpecularColor, specularTransition );
+
+    o.Albedo = c;
+
+}
+                `
+        };
+
+        let custormMaterial = new SurfaceMaterial( Shader );
+
+        let chromeMaterial = new SurfaceMaterial( Shader );
+        chromeMaterial.setUniformsValue( {
+            _Color: new THREE.Color( 0xC0C0C0 ),
+            _ColorDim: new THREE.Color( 0xD9D9D9 ),
+            _FlatSpecularColor: new THREE.Color( 0xdbdbdb ),
+            _FlatRimColor: new THREE.Color( 0x10605c ),
+            _ColorGradient: new THREE.Color( 0xdbdbdb ),
+        } );
+
+        let hatchMaterial = new SurfaceMaterial( Shader );
+        hatchMaterial.setUniformsValue( {
+            _Color: new THREE.Color( 0x222222 ),
+            _ColorDim: new THREE.Color( 0xD9D9D9 ),
+            _FlatSpecularColor: new THREE.Color( 0x464545 ),
+            _FlatRimColor: new THREE.Color( 0x374f4e ),
+            _ColorGradient: new THREE.Color( 0x903733 ),
+        } )
+
+        let platesMaterial = new SurfaceMaterial( Shader );
+        platesMaterial.setUniformsValue( {
+            _Color: new THREE.Color( 0x1e1515 ),
+            _ColorDim: new THREE.Color( 0xD9D9D9 ),
+            _FlatSpecularColor: new THREE.Color( 0x595959 ),
+            _FlatRimColor: new THREE.Color( 0x10605c ),
+            _ColorGradient: new THREE.Color( 0x000000 ),
+        } );
+
+        let surfFolder;
+
+        function initMaterialGUI( material ) {
+
+            if ( surfFolder ) {
+
+                surfFolder.destroy();
+                surfFolder = null;
+
+            }
+
+            surfFolder = app.debug.ui.addFolder( 'Surface Material' );
+            surfFolder.addColor( material.uniforms._Color, 'value' ).name( 'Color' );
+            surfFolder.addColor( material.uniforms._ColorDim, 'value' ).name( 'Color Shaded' );
+            surfFolder.add( material.uniforms._SelfShadingSize, 'value', 0, 1, 0.001 ).name( 'Self Shading Size' );
+            surfFolder.add( material.uniforms._ShadowEdgeSize, 'value', 0, 1, 0.001 ).name( 'Shadow Edge Size' );
+            surfFolder.add( material.uniforms._Flatness, 'value', 0, 1, 0.001 ).name( 'Localized Shading' );
+
+            let specularFolder = surfFolder.addFolder( 'Specular' );
+            specularFolder.addColor( material.uniforms._FlatSpecularColor, 'value' ).name( 'Specular Color' );
+            specularFolder.add( material.uniforms._FlatSpecularSize, 'value', 0, 1, 0.001 ).name( 'Specular Size' );
+            specularFolder.add( material.uniforms._FlatSpecularEdgeSmoothness, 'value', 0, 1, 0.001 ).name( 'Specular Edge Smoothness' );
+
+            let rimFolder = surfFolder.addFolder( 'Rim' );
+            rimFolder.addColor( material.uniforms._FlatRimColor, 'value' ).name( 'Rim Color' );
+            rimFolder.add( material.uniforms._FlatRimLightAlign, 'value', 0, 1, 0.001 ).name( 'Light Align' );
+            rimFolder.add( material.uniforms._FlatRimSize, 'value', 0, 1, 0.001 ).name( 'Rim Size' );
+            rimFolder.add( material.uniforms._FlatRimEdgeSmoothness, 'value', 0, 1, 0.001 ).name( 'Rim Edge Smoothness' );
+
+            let gradientFactor = surfFolder.addFolder( 'Gradient' );
+            gradientFactor.addColor( material.uniforms._ColorGradient, 'value' ).name( 'Gradient Color' );
+            gradientFactor.add( material.uniforms._GradientCenterX, 'value' ).name( 'Center X' );
+            gradientFactor.add( material.uniforms._GradientCenterY, 'value' ).name( 'Center Y' );
+            gradientFactor.add( material.uniforms._GradientSize, 'value' ).name( 'Size' );
+            gradientFactor.add( material.uniforms._GradientAngle, 'value', 0, 360, 1 ).name( 'Gradient Angle' );
+
+            surfFolder.close()
+
+        }
+
+        initMaterialGUI( custormMaterial );
+
+        mesh = new THREE.Mesh(
+            new THREE.BoxGeometry(),
+            custormMaterial
+        );
+        mesh.position.y += 0.5;
+        // app.root.add( mesh );
+
+        // ==================================
+
+        mesh = new THREE.Mesh(
+            new THREE.BoxGeometry( 20, 0.02, 20 ),
+            new THREE.MeshStandardMaterial()
+        );
+        mesh.receiveShadow = true;
+        app.root.add( mesh );
+
+        // ==================================
+
+        let assets = [
+            {
+                name: 'Car',
+                data: {},
+                items: [
+                    { name: 'Car', url: './asset/fbx/Car.fbx' },
+                ]
+            }
+        ];
+
+        app.assetManager.once( 'end', () => {
+
+            let assets = app.assetManager.assets;
+
+            let Car = assets.Car;
+            Car.rotateX( - Math.PI / 2 );
+            app.root.add( Car );
+
+            Car.traverse( child => {
+                if ( child.isMesh )
+                    child.castShadow = true;
+            } )
+
+            Car.getObjectByName( 'Car_Body' ).material = custormMaterial;
+
+            Car.getObjectByName( 'Car_WindowsFrames' ).material =
+                Car.getObjectByName( 'Car_Mirrors' ).material =
+                Car.getObjectByName( 'Car_LightsRims' ).material =
+                Car.getObjectByName( 'Car_Bumpers' ).material =
+                Car.getObjectByName( 'Car_Logo_Front' ).material =
+                Car.getObjectByName( 'Car_RearDoorHandle' ).material =
+                Car.getObjectByName( 'Car_Wipers' ).material =
+                Car.getObjectByName( 'Car_Maldings' ).material =
+                Car.getObjectByName( 'Car_DoorHandles' ).material =
+                Car.getObjectByName( 'Car_Plate_Rear_Rim' ).material =
+                Car.getObjectByName( 'Car_Wheel_Front_Left_Rim' ).material =
+                Car.getObjectByName( 'Car_Wheel_Front_Right_Rim' ).material =
+                Car.getObjectByName( 'Car_Wheel_Rear_Left_Rim' ).material =
+                Car.getObjectByName( 'Car_Wheel_Rear_Right_Rim' ).material = chromeMaterial;
+
+            Car.getObjectByName( 'Car_Lights1' ).material = chromeMaterial;
+
+            Car.getObjectByName( 'Car_Windows' ).material = platesMaterial;
+
+            Car.getObjectByName( 'Car_Hatch' ).material = hatchMaterial;
+
+            Car.getObjectByName( 'Car_Plate_Front' ).material = platesMaterial;
+            Car.getObjectByName( 'Car_Plate_Rear' ).material = platesMaterial;
+
+        } );
+        app.assetManager.load( assets );
+
+        // ==================================
+
+        app.start();
+
+    </script>
+
+</body>
+
+</html>
