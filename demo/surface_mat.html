@@ -246,7 +246,6 @@ void surface( Input IN, inout SurfaceOutput o ) {
             celFolder.add( material.uniforms._SelfShadingSizeExtra, 'value', 0, 1, 0.001 ).name( 'Self Shading Size' );
             celFolder.add( material.uniforms._ShadowEdgeSizeExtra, 'value', 0, 1, 0.001 ).name( 'Shadow Edge Size' );
             celFolder.add( material.uniforms._FlatnessExtra, 'value', 0, 1, 0.001 ).name( 'Localized Shading' );
-            console.log( material );
 
             let specularFolder = surfFolder.addFolder( 'Specular' );
             specularFolder.addColor( material.uniforms._FlatSpecularColor, 'value' ).name( 'Specular Color' );
