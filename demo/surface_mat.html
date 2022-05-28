@@ -29,6 +29,8 @@
         import * as THREE from "three";
         import { Application } from "./js/app.module.js";
 
+        import { EditorPlugin } from "./js/plugins/editor.js";
+
         import { SurfaceMaterial } from "./js/SurfaceMaterial.js";
 
         import { LoadingScreen } from "./js/loading-screen.js";
@@ -40,8 +42,7 @@
             // keyboard: new Keyboard(window)
         } );
 
-        // app.root.add( new THREE.GridHelper( 10, 10 ) );
-        // app.root.add( new THREE.AxesHelper( 100 ) );
+        let editor = new EditorPlugin( app );
 
         app.root.add( new THREE.AmbientLight( 'white', 0.15 ) );
 
@@ -211,11 +212,31 @@ void surface( Input IN, inout SurfaceOutput o ) {
             gradientFactor.add( material.uniforms._GradientSize, 'value' ).name( 'Size' );
             gradientFactor.add( material.uniforms._GradientAngle, 'value', 0, 360, 1 ).name( 'Gradient Angle' );
 
-            surfFolder.close()
-
         }
 
-        initMaterialGUI( custormMaterial );
+        editor.on( 'select', object => {
+
+            if ( object && object.isMesh ) {
+
+                if ( object.material.isSurfaceMaterial ) {
+
+                    initMaterialGUI( object.material );
+
+                } else {
+
+                    surfFolder && surfFolder.destroy();
+                    surfFolder = null;
+
+                }
+
+            } else {
+
+                surfFolder && surfFolder.destroy();
+                surfFolder = null;
+
+            }
+
+        } )
 
         mesh = new THREE.Mesh(
             new THREE.BoxGeometry(),

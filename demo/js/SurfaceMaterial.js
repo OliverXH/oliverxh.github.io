@@ -218,6 +218,8 @@ void main() {
 			fragmentShader: fragment
 		} );
 
+		this.isSurfaceMaterial = true;
+
 		this.buildUniforms( params.properties );
 		this.buildLightModel( params.lightModel ?? '' );
 		this.buildSurfaceFunc( params.surfaceFunc ?? '' );
