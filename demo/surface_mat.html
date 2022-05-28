@@ -66,6 +66,11 @@
                 '_SelfShadingSize:t': 0.0,
                 '_ShadowEdgeSize:t': 0.05,
                 '_Flatness:t': 1.0,
+                // Cel
+                '_ColorDimExtra:v3': new THREE.Color( 0xd8d8d8 ),
+                '_SelfShadingSizeExtra:t': 0.0,
+                '_ShadowEdgeSizeExtra:t': 0.0,
+                '_FlatnessExtra:t': 1.0,
                 // Specular
                 '_FlatSpecularSize:t': 0.1,
                 '_FlatSpecularEdgeSmoothness:t': 0.0,
@@ -102,6 +107,12 @@ float NdotLTransitionPrimary( vec3 normal, vec3 lightDir ) {
 
 }
 
+float NdotLTransitionExtra( vec3 normal, vec3 lightDir ) { 
+
+    return NdotLTransition( normal, lightDir, _SelfShadingSizeExtra, _ShadowEdgeSizeExtra, _FlatnessExtra );
+
+}
+
 void surface( Input IN, inout SurfaceOutput o ) {
 
     vec3 lightDir = IN.lightDir;
@@ -113,6 +124,10 @@ void surface( Input IN, inout SurfaceOutput o ) {
 
     float NdotLTPrimary = NdotLTransitionPrimary( Normal, lightDir );
     c = lerp( _ColorDim, _Color, NdotLTPrimary );
+
+    // Cel Extra
+    float NdotLTExtra = NdotLTransitionExtra( Normal, lightDir );
+    c = lerp( _ColorDimExtra, c, NdotLTExtra );
 
     // Gradient
     float angleRadians = _GradientAngle / 180.0 * 3.14159265359;
@@ -147,21 +162,42 @@ void surface( Input IN, inout SurfaceOutput o ) {
                 `
         };
 
-        let custormMaterial = new SurfaceMaterial( Shader );
+        let bodyMaterial = new SurfaceMaterial( Shader );
+        bodyMaterial.setUniformsValue( {
+            _Color: new THREE.Color( 0xE5B700 ),
+            _ColorDim: new THREE.Color( 0xD9D9D9 ),
+            _ColorDimExtra: new THREE.Color( 0xff0000 ),
+            _SelfShadingSizeExtra: 0.5,
+            _ShadowEdgeSizeExtra: 0.05,
+            _FlatSpecularColor: new THREE.Color( 0xffe764 ),
+            _FlatRimColor: new THREE.Color( 0xffe764 ),
+            _ColorGradient: new THREE.Color( 0xff6e00 ),
+        } );
 
         let chromeMaterial = new SurfaceMaterial( Shader );
         chromeMaterial.setUniformsValue( {
             _Color: new THREE.Color( 0xC0C0C0 ),
             _ColorDim: new THREE.Color( 0xD9D9D9 ),
+            _ColorDimExtra: new THREE.Color( 0x000000 ),
             _FlatSpecularColor: new THREE.Color( 0xdbdbdb ),
             _FlatRimColor: new THREE.Color( 0x10605c ),
             _ColorGradient: new THREE.Color( 0xdbdbdb ),
+        } );
+
+        let chrome2Material = new SurfaceMaterial( Shader );
+        chrome2Material.setUniformsValue( {
+            _Color: new THREE.Color( 0xcfcfcf ),
+            _ColorDim: new THREE.Color( 0x0bdbd7 ),
+            _ColorDimExtra: new THREE.Color( 0x000000 ),
+            _SelfShadingSize: 0.5,
+            _ColorGradient: new THREE.Color( 0x315987 ),
         } );
 
         let hatchMaterial = new SurfaceMaterial( Shader );
         hatchMaterial.setUniformsValue( {
             _Color: new THREE.Color( 0x222222 ),
             _ColorDim: new THREE.Color( 0xD9D9D9 ),
+            _ColorDimExtra: new THREE.Color( 0x000000 ),
             _FlatSpecularColor: new THREE.Color( 0x464545 ),
             _FlatRimColor: new THREE.Color( 0x374f4e ),
             _ColorGradient: new THREE.Color( 0x903733 ),
@@ -171,8 +207,19 @@ void surface( Input IN, inout SurfaceOutput o ) {
         platesMaterial.setUniformsValue( {
             _Color: new THREE.Color( 0x1e1515 ),
             _ColorDim: new THREE.Color( 0xD9D9D9 ),
+            _ColorDimExtra: new THREE.Color( 0x000000 ),
             _FlatSpecularColor: new THREE.Color( 0x595959 ),
             _FlatRimColor: new THREE.Color( 0x10605c ),
+            _ColorGradient: new THREE.Color( 0x000000 ),
+        } );
+
+        let tyresMaterial = new SurfaceMaterial( Shader );
+        tyresMaterial.setUniformsValue( {
+            _Color: new THREE.Color( 0x000000 ),
+            _ColorDim: new THREE.Color( 0x000000 ),
+            _ColorDimExtra: new THREE.Color( 0x000000 ),
+            _FlatSpecularColor: new THREE.Color( 0x000000 ),
+            _FlatRimColor: new THREE.Color( 0x000000 ),
             _ColorGradient: new THREE.Color( 0x000000 ),
         } );
 
@@ -194,6 +241,13 @@ void surface( Input IN, inout SurfaceOutput o ) {
             surfFolder.add( material.uniforms._ShadowEdgeSize, 'value', 0, 1, 0.001 ).name( 'Shadow Edge Size' );
             surfFolder.add( material.uniforms._Flatness, 'value', 0, 1, 0.001 ).name( 'Localized Shading' );
 
+            let celFolder = surfFolder.addFolder( 'Extra Cel Layer' );
+            celFolder.addColor( material.uniforms._ColorDimExtra, 'value' ).name( 'Color Shaded' );
+            celFolder.add( material.uniforms._SelfShadingSizeExtra, 'value', 0, 1, 0.001 ).name( 'Self Shading Size' );
+            celFolder.add( material.uniforms._ShadowEdgeSizeExtra, 'value', 0, 1, 0.001 ).name( 'Shadow Edge Size' );
+            celFolder.add( material.uniforms._FlatnessExtra, 'value', 0, 1, 0.001 ).name( 'Localized Shading' );
+            console.log( material );
+
             let specularFolder = surfFolder.addFolder( 'Specular' );
             specularFolder.addColor( material.uniforms._FlatSpecularColor, 'value' ).name( 'Specular Color' );
             specularFolder.add( material.uniforms._FlatSpecularSize, 'value', 0, 1, 0.001 ).name( 'Specular Size' );
@@ -211,6 +265,8 @@ void surface( Input IN, inout SurfaceOutput o ) {
             gradientFactor.add( material.uniforms._GradientCenterY, 'value' ).name( 'Center Y' );
             gradientFactor.add( material.uniforms._GradientSize, 'value' ).name( 'Size' );
             gradientFactor.add( material.uniforms._GradientAngle, 'value', 0, 360, 1 ).name( 'Gradient Angle' );
+
+            // surfFolder.close()
 
         }
 
@@ -240,7 +296,7 @@ void surface( Input IN, inout SurfaceOutput o ) {
 
         mesh = new THREE.Mesh(
             new THREE.BoxGeometry(),
-            custormMaterial
+            bodyMaterial
         );
         mesh.position.y += 0.5;
         // app.root.add( mesh );
@@ -279,7 +335,7 @@ void surface( Input IN, inout SurfaceOutput o ) {
                     child.castShadow = true;
             } )
 
-            Car.getObjectByName( 'Car_Body' ).material = custormMaterial;
+            Car.getObjectByName( 'Car_Body' ).material = bodyMaterial;
 
             Car.getObjectByName( 'Car_WindowsFrames' ).material =
                 Car.getObjectByName( 'Car_Mirrors' ).material =
@@ -290,6 +346,7 @@ void surface( Input IN, inout SurfaceOutput o ) {
                 Car.getObjectByName( 'Car_Wipers' ).material =
                 Car.getObjectByName( 'Car_Maldings' ).material =
                 Car.getObjectByName( 'Car_DoorHandles' ).material =
+                Car.getObjectByName( 'Car_Plate_Front_Rim' ).material =
                 Car.getObjectByName( 'Car_Plate_Rear_Rim' ).material =
                 Car.getObjectByName( 'Car_Wheel_Front_Left_Rim' ).material =
                 Car.getObjectByName( 'Car_Wheel_Front_Right_Rim' ).material =
@@ -302,8 +359,20 @@ void surface( Input IN, inout SurfaceOutput o ) {
 
             Car.getObjectByName( 'Car_Hatch' ).material = hatchMaterial;
 
-            Car.getObjectByName( 'Car_Plate_Front' ).material = platesMaterial;
-            Car.getObjectByName( 'Car_Plate_Rear' ).material = platesMaterial;
+            Car.getObjectByName( 'Car_Pipe' ).material =
+                Car.getObjectByName( 'Car_Plate_Front' ).material =
+                Car.getObjectByName( 'Car_Plate_Rear' ).material = platesMaterial;
+
+            Car.getObjectByName( 'Car_Bottom' ).material =
+                Car.getObjectByName( 'Car_Wheel_Front_Left_Tyre' ).material =
+                Car.getObjectByName( 'Car_Wheel_Front_Right_Tyre' ).material =
+                Car.getObjectByName( 'Car_Wheel_Rear_Left_Tyre' ).material =
+                Car.getObjectByName( 'Car_Wheel_Rear_Right_Tyre' ).material = tyresMaterial;
+
+            Car.getObjectByName( 'Car_Wheel_Front_Left_Cap1' ).material =
+                Car.getObjectByName( 'Car_Wheel_Front_Right_Cap1' ).material =
+                Car.getObjectByName( 'Car_Wheel_Rear_Left_Cap1' ).material =
+                Car.getObjectByName( 'Car_Wheel_Rear_Right_Cap1' ).material = chrome2Material;
 
         } );
         app.assetManager.load( assets );

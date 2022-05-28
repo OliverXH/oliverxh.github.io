@@ -2134,7 +2134,7 @@ Stats.Panel = function ( name, fg, bg ) {
 };
 
 class Debug {
-    
+
     constructor( container ) {
 
         this.ui = new GUI( { width: 320, title: 'Debug' } );
@@ -2146,6 +2146,27 @@ class Debug {
         container.appendChild( this.stats.dom );
         container.appendChild( this.ui.domElement );
         // console.log( this.ui );
+
+        function stopBubble( e ) {
+
+            if ( e && e.stopPropagation ) {
+
+                e.stopPropagation();
+
+            } else {
+
+                window.event.cancelBubble = true;
+
+            }
+        }
+
+        this.stats.dom.addEventListener( 'mousedown', stopBubble );
+        this.stats.dom.addEventListener( 'touchstart', stopBubble );
+        this.stats.dom.addEventListener( 'dblclick', stopBubble );
+
+        this.ui.domElement.addEventListener( 'mousedown', stopBubble );
+        this.ui.domElement.addEventListener( 'touchstart', stopBubble );
+        this.ui.domElement.addEventListener( 'dblclick', stopBubble );
 
     }
 
