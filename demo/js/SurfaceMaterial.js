@@ -220,9 +220,16 @@ void main() {
 
 		this.isSurfaceMaterial = true;
 
+		this.buildDefines( params.defines ?? {} );
 		this.buildUniforms( params.properties );
 		this.buildLightModel( params.lightModel ?? '' );
 		this.buildSurfaceFunc( params.surfaceFunc ?? '' );
+
+	}
+
+	buildDefines( defines ) {
+
+		this.defines = Object.assign( this.defines, defines );
 
 	}
 
@@ -249,7 +256,7 @@ void main() {
 				let keyInfo = key.split( ':' );
 
 				this.uniforms[ keyInfo[ 0 ] ] = {
-					value: properties[ key ]
+					value: properties[ key ].clone ? properties[ key ].clone() : properties[ key ]
 				};
 
 				_uniforms.push( `uniform ${this.getType( keyInfo[ 1 ] )} ${keyInfo[ 0 ]};` );
