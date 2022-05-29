@@ -37,23 +37,22 @@
 
         let app = new Application( document.body, {
             antialias: true,
-            clearColor: 0xaaaaaa,
-            powerPreference: 'high-performance',
-            // keyboard: new Keyboard(window)
+            clearColor: 0xf5a356,
         } );
+
+        app.camera.position.set( 3.4, 2, -2 );
 
         let editor = new EditorPlugin( app );
 
-        app.root.add( new THREE.AmbientLight( 'white', 0.15 ) );
-
         let light = new THREE.DirectionalLight( 'white' );
         light.position.set( -1, 5, -1 );
-        // light.shadow.mapSize.width = 256;
-        // light.shadow.mapSize.height = 256;
+        const mapSize = 1024;
+        light.shadow.mapSize.width = mapSize;
+        light.shadow.mapSize.height = mapSize;
         light.castShadow = true;
         app.root.add( light );
-        app.root.add( new THREE.DirectionalLightHelper( light, 1 ) );
 
+        app.root.add( new THREE.AmbientLight( 'white', 0.15 ) );
 
         // ==================================
 
@@ -61,8 +60,8 @@
 
         let Shader = {
             properties: {
-                '_Color:v3': new THREE.Color( 0xE5B700 ),
-                '_ColorDim:v3': new THREE.Color( 0xD9D9D9 ),
+                '_Color:v3': new THREE.Color( 0xd8d8d8 ),
+                '_ColorDim:v3': new THREE.Color( 0xd8d8d8 ),
                 '_SelfShadingSize:t': 0.0,
                 '_ShadowEdgeSize:t': 0.05,
                 '_Flatness:t': 1.0,
@@ -74,19 +73,25 @@
                 // Specular
                 '_FlatSpecularSize:t': 0.1,
                 '_FlatSpecularEdgeSmoothness:t': 0.0,
-                '_FlatSpecularColor:v3': new THREE.Color( 0xffe764 ),
+                '_FlatSpecularColor:v3': new THREE.Color( 0xd8d8d8 ),
                 // Rim
-                '_FlatRimColor:v3': new THREE.Color( 0xffe764 ),
+                '_FlatRimColor:v3': new THREE.Color( 0xd8d8d8 ),
                 '_FlatRimLightAlign:t': 0.0,
                 '_FlatRimSize:t': 0.174,
                 '_FlatRimEdgeSmoothness:t': 0.279,
                 // Gradient
-                '_ColorGradient:v3': new THREE.Color( 0xff6e00 ),
+                '_ColorGradient:v3': new THREE.Color( 0xd8d8d8 ),
                 '_GradientCenterX:t': 0.0,
                 '_GradientCenterY:t': 0.0,
                 '_GradientSize:t': 10.0,
                 '_GradientAngle:t': 0.0,
 
+            },
+            defines: {
+                DR_CEL_EXTRA_ON: false,
+                DR_SPECULAR_ON: false,
+                DR_RIM_ON: false,
+                DR_GRADIENT_ON: false,
             },
             lightModel: /* glsl */``,
             surfaceFunc: /* glsl */`
@@ -126,18 +131,22 @@ void surface( Input IN, inout SurfaceOutput o ) {
     c = lerp( _ColorDim, _Color, NdotLTPrimary );
 
     // Cel Extra
+#if defined( DR_CEL_EXTRA_ON )
     float NdotLTExtra = NdotLTransitionExtra( Normal, lightDir );
     c = lerp( _ColorDimExtra, c, NdotLTExtra );
+#endif
 
     // Gradient
+#if defined(DR_GRADIENT_ON)
     float angleRadians = _GradientAngle / 180.0 * 3.14159265359;
-    float posGradRotated = (worldPos.x - _GradientCenterX) * sin(angleRadians) + 
-                            (worldPos.y - _GradientCenterY) * cos(angleRadians);
+    float posGradRotated = (worldPos.x - _GradientCenterX) * sin(angleRadians) + (worldPos.y - _GradientCenterY) * cos(angleRadians);
     float gradientTop = _GradientCenterY + _GradientSize * 0.5;
     float gradientFactor = saturate((gradientTop - posGradRotated) / _GradientSize);
     c = lerp(c, _ColorGradient, gradientFactor);
+#endif
 
     // Rim
+#if defined(DR_RIM_ON)
     float rim = 1.0 - dot( viewDir, Normal );
     float NdotL = dot( Normal, lightDir );
     float rimLightAlign = _FlatRimLightAlign;
@@ -146,8 +155,10 @@ void surface( Input IN, inout SurfaceOutput o ) {
     float rimEdgeSmooth = _FlatRimEdgeSmoothness;
     float rimTransition = smoothstep( rimSpread - rimEdgeSmooth * 0.5, rimSpread + rimEdgeSmooth * 0.5, rim );
     c = lerp( c, _FlatRimColor, rimTransition );
+#endif
     
     // Specular
+#if defined(DR_SPECULAR_ON)
     vec3 halfVector = normalize( lightDir + viewDir );
     float NdotH = dot( Normal, halfVector ) * 0.5 + 0.5;
     float specularSize = _FlatSpecularSize;
@@ -155,6 +166,7 @@ void surface( Input IN, inout SurfaceOutput o ) {
     float specular = saturate( pow( NdotH, 100.0 * ( 1.0 - specularSize ) * ( 1.0 - specularSize ) ) );
     float specularTransition = smoothstep( 0.5 - specEdgeSmooth * 0.1, 0.5 + specEdgeSmooth * 0.1, specular );
     c = lerp( c, _FlatSpecularColor, specularTransition );
+#endif
 
     o.Albedo = c;
 
@@ -163,12 +175,15 @@ void surface( Input IN, inout SurfaceOutput o ) {
         };
 
         let bodyMaterial = new SurfaceMaterial( Shader );
+        bodyMaterial.defines.DR_CEL_EXTRA_ON = true;
+        bodyMaterial.defines.DR_SPECULAR_ON = true;
+        bodyMaterial.defines.DR_RIM_ON = true;
         bodyMaterial.setUniformsValue( {
             _Color: new THREE.Color( 0xE5B700 ),
             _ColorDim: new THREE.Color( 0xD9D9D9 ),
-            _ColorDimExtra: new THREE.Color( 0xff0000 ),
+            _ColorDimExtra: new THREE.Color( 0xff4d00 ),
             _SelfShadingSizeExtra: 0.5,
-            _ShadowEdgeSizeExtra: 0.05,
+            _ShadowEdgeSizeExtra: 0.13,
             _FlatSpecularColor: new THREE.Color( 0xffe764 ),
             _FlatRimColor: new THREE.Color( 0xffe764 ),
             _ColorGradient: new THREE.Color( 0xff6e00 ),
@@ -178,26 +193,27 @@ void surface( Input IN, inout SurfaceOutput o ) {
         chromeMaterial.setUniformsValue( {
             _Color: new THREE.Color( 0xC0C0C0 ),
             _ColorDim: new THREE.Color( 0xD9D9D9 ),
-            _ColorDimExtra: new THREE.Color( 0x000000 ),
             _FlatSpecularColor: new THREE.Color( 0xdbdbdb ),
-            _FlatRimColor: new THREE.Color( 0x10605c ),
-            _ColorGradient: new THREE.Color( 0xdbdbdb ),
+            // _FlatRimColor: new THREE.Color( 0x10605c ),
+            // _ColorGradient: new THREE.Color( 0xdbdbdb ),
         } );
 
         let chrome2Material = new SurfaceMaterial( Shader );
         chrome2Material.setUniformsValue( {
             _Color: new THREE.Color( 0xcfcfcf ),
             _ColorDim: new THREE.Color( 0x0bdbd7 ),
-            _ColorDimExtra: new THREE.Color( 0x000000 ),
             _SelfShadingSize: 0.5,
-            _ColorGradient: new THREE.Color( 0x315987 ),
+            // _ColorGradient: new THREE.Color( 0x315987 ),
         } );
 
         let hatchMaterial = new SurfaceMaterial( Shader );
+        hatchMaterial.defines.DR_CEL_EXTRA_ON = true;
+        hatchMaterial.defines.DR_SPECULAR_ON = true;
+        hatchMaterial.defines.DR_RIM_ON = true;
+        hatchMaterial.defines.DR_GRADIENT_ON = true;
         hatchMaterial.setUniformsValue( {
             _Color: new THREE.Color( 0x222222 ),
             _ColorDim: new THREE.Color( 0xD9D9D9 ),
-            _ColorDimExtra: new THREE.Color( 0x000000 ),
             _FlatSpecularColor: new THREE.Color( 0x464545 ),
             _FlatRimColor: new THREE.Color( 0x374f4e ),
             _ColorGradient: new THREE.Color( 0x903733 ),
@@ -207,21 +223,26 @@ void surface( Input IN, inout SurfaceOutput o ) {
         platesMaterial.setUniformsValue( {
             _Color: new THREE.Color( 0x1e1515 ),
             _ColorDim: new THREE.Color( 0xD9D9D9 ),
-            _ColorDimExtra: new THREE.Color( 0x000000 ),
             _FlatSpecularColor: new THREE.Color( 0x595959 ),
             _FlatRimColor: new THREE.Color( 0x10605c ),
-            _ColorGradient: new THREE.Color( 0x000000 ),
+            // _ColorGradient: new THREE.Color( 0x000000 ),
         } );
 
         let tyresMaterial = new SurfaceMaterial( Shader );
         tyresMaterial.setUniformsValue( {
             _Color: new THREE.Color( 0x000000 ),
             _ColorDim: new THREE.Color( 0x000000 ),
-            _ColorDimExtra: new THREE.Color( 0x000000 ),
             _FlatSpecularColor: new THREE.Color( 0x000000 ),
             _FlatRimColor: new THREE.Color( 0x000000 ),
             _ColorGradient: new THREE.Color( 0x000000 ),
         } );
+
+        let light2Material = new SurfaceMaterial( Shader );
+        light2Material.setUniformsValue( {
+            _Color: new THREE.Color( 0xf1a90a ),
+            _ColorDim: new THREE.Color( 0xdce531 ),
+            _SelfShadingSize: 0.5
+        } )
 
         let surfFolder;
 
@@ -236,38 +257,82 @@ void surface( Input IN, inout SurfaceOutput o ) {
 
             surfFolder = app.debug.ui.addFolder( 'Surface Material' );
             surfFolder.addColor( material.uniforms._Color, 'value' ).name( 'Color' );
-            surfFolder.addColor( material.uniforms._ColorDim, 'value' ).name( 'Color Shaded' );
-            surfFolder.add( material.uniforms._SelfShadingSize, 'value', 0, 1, 0.001 ).name( 'Self Shading Size' );
-            surfFolder.add( material.uniforms._ShadowEdgeSize, 'value', 0, 1, 0.001 ).name( 'Shadow Edge Size' );
-            surfFolder.add( material.uniforms._Flatness, 'value', 0, 1, 0.001 ).name( 'Localized Shading' );
 
-            let celFolder = surfFolder.addFolder( 'Extra Cel Layer' );
-            celFolder.addColor( material.uniforms._ColorDimExtra, 'value' ).name( 'Color Shaded' );
-            celFolder.add( material.uniforms._SelfShadingSizeExtra, 'value', 0, 1, 0.001 ).name( 'Self Shading Size' );
-            celFolder.add( material.uniforms._ShadowEdgeSizeExtra, 'value', 0, 1, 0.001 ).name( 'Shadow Edge Size' );
-            celFolder.add( material.uniforms._FlatnessExtra, 'value', 0, 1, 0.001 ).name( 'Localized Shading' );
+            let celFolder = surfFolder.addFolder( 'Cel Shading Mode' )
+            celFolder.addColor( material.uniforms._ColorDim, 'value' ).name( 'Color Shaded' );
+            celFolder.add( material.uniforms._SelfShadingSize, 'value', 0, 1, 0.001 ).name( 'Self Shading Size' );
+            celFolder.add( material.uniforms._ShadowEdgeSize, 'value', 0, 1, 0.001 ).name( 'Shadow Edge Size' );
+            celFolder.add( material.uniforms._Flatness, 'value', 0, 1, 0.001 ).name( 'Localized Shading' );
 
-            let specularFolder = surfFolder.addFolder( 'Specular' );
+            let extraCelFolder;
+            surfFolder.add( material.defines, 'DR_CEL_EXTRA_ON' ).name( 'Enable Extra Cel Layer' ).onChange( ( value ) => {
+                material.defines.DR_CEL_EXTRA_ON = value;
+                material.needsUpdate = true;
+                ( !value && extraCelFolder.hide() ) || ( value && extraCelFolder.show() );
+            } )
+            extraCelFolder = surfFolder.addFolder( 'Extra Cel Layer' );
+            extraCelFolder.addColor( material.uniforms._ColorDimExtra, 'value' ).name( 'Color Shaded' );
+            extraCelFolder.add( material.uniforms._SelfShadingSizeExtra, 'value', 0, 1, 0.001 ).name( 'Self Shading Size' );
+            extraCelFolder.add( material.uniforms._ShadowEdgeSizeExtra, 'value', 0, 1, 0.001 ).name( 'Shadow Edge Size' );
+            extraCelFolder.add( material.uniforms._FlatnessExtra, 'value', 0, 1, 0.001 ).name( 'Localized Shading' );
+            extraCelFolder.hide();
+            if ( material.defines.DR_CEL_EXTRA_ON ) {
+                extraCelFolder.show();
+            }
+
+            let specularFolder;
+            surfFolder.add( material.defines, 'DR_SPECULAR_ON' ).name( 'Enable Specular' ).onChange( ( value ) => {
+                material.defines.DR_SPECULAR_ON = value;
+                material.needsUpdate = true;
+                ( !value && specularFolder.hide() ) || ( value && specularFolder.show() );
+            } )
+            specularFolder = surfFolder.addFolder( 'Specular' );
             specularFolder.addColor( material.uniforms._FlatSpecularColor, 'value' ).name( 'Specular Color' );
             specularFolder.add( material.uniforms._FlatSpecularSize, 'value', 0, 1, 0.001 ).name( 'Specular Size' );
             specularFolder.add( material.uniforms._FlatSpecularEdgeSmoothness, 'value', 0, 1, 0.001 ).name( 'Specular Edge Smoothness' );
+            specularFolder.hide();
+            if ( material.defines.DR_SPECULAR_ON ) {
+                specularFolder.show();
+            }
 
-            let rimFolder = surfFolder.addFolder( 'Rim' );
+            let rimFolder;
+            surfFolder.add( material.defines, 'DR_RIM_ON' ).name( 'Enable Rim' ).onChange( ( value ) => {
+                material.defines.DR_RIM_ON = value;
+                material.needsUpdate = true;
+                ( !value && rimFolder.hide() ) || ( value && rimFolder.show() );
+            } )
+            rimFolder = surfFolder.addFolder( 'Rim' );
             rimFolder.addColor( material.uniforms._FlatRimColor, 'value' ).name( 'Rim Color' );
             rimFolder.add( material.uniforms._FlatRimLightAlign, 'value', 0, 1, 0.001 ).name( 'Light Align' );
             rimFolder.add( material.uniforms._FlatRimSize, 'value', 0, 1, 0.001 ).name( 'Rim Size' );
             rimFolder.add( material.uniforms._FlatRimEdgeSmoothness, 'value', 0, 1, 0.001 ).name( 'Rim Edge Smoothness' );
+            rimFolder.hide();
+            if ( material.defines.DR_RIM_ON ) {
+                rimFolder.show();
+            }
 
-            let gradientFactor = surfFolder.addFolder( 'Gradient' );
+            let gradientFactor;
+            surfFolder.add( material.defines, 'DR_GRADIENT_ON' ).name( 'Enable Height Gradient' ).onChange( ( value ) => {
+                material.defines.DR_GRADIENT_ON = value;
+                material.needsUpdate = true;
+                ( !value && gradientFactor.hide() ) || ( value && gradientFactor.show() );
+            } )
+            gradientFactor = surfFolder.addFolder( 'Height Gradient' );
             gradientFactor.addColor( material.uniforms._ColorGradient, 'value' ).name( 'Gradient Color' );
             gradientFactor.add( material.uniforms._GradientCenterX, 'value' ).name( 'Center X' );
             gradientFactor.add( material.uniforms._GradientCenterY, 'value' ).name( 'Center Y' );
             gradientFactor.add( material.uniforms._GradientSize, 'value' ).name( 'Size' );
             gradientFactor.add( material.uniforms._GradientAngle, 'value', 0, 360, 1 ).name( 'Gradient Angle' );
+            gradientFactor.hide();
+            if ( material.defines.DR_GRADIENT_ON ) {
+                gradientFactor.show();
+            }
 
             // surfFolder.close()
 
         }
+
+        // initMaterialGUI( bodyMaterial );
 
         editor.on( 'select', object => {
 
@@ -302,10 +367,13 @@ void surface( Input IN, inout SurfaceOutput o ) {
 
         // ==================================
 
-        mesh = new THREE.Mesh(
-            new THREE.BoxGeometry( 20, 0.02, 20 ),
-            new THREE.MeshStandardMaterial()
-        );
+        const geometry = new THREE.PlaneGeometry( 5, 5 );
+        geometry.rotateX( - Math.PI / 2 );
+
+        const material = new THREE.ShadowMaterial();
+        material.opacity = 0.2;
+
+        mesh = new THREE.Mesh( geometry, material );
         mesh.receiveShadow = true;
         app.root.add( mesh );
 
@@ -327,7 +395,7 @@ void surface( Input IN, inout SurfaceOutput o ) {
 
             let Car = assets.Car;
             Car.rotateX( - Math.PI / 2 );
-            app.root.add( Car );
+            editor.group.add( Car );
 
             Car.traverse( child => {
                 if ( child.isMesh )
@@ -353,6 +421,9 @@ void surface( Input IN, inout SurfaceOutput o ) {
                 Car.getObjectByName( 'Car_Wheel_Rear_Right_Rim' ).material = chromeMaterial;
 
             Car.getObjectByName( 'Car_Lights1' ).material = chromeMaterial;
+
+            Car.getObjectByName( 'Car_LightsSmall' ).material =
+                Car.getObjectByName( 'Car_Lights2' ).material = light2Material;
 
             Car.getObjectByName( 'Car_Windows' ).material = platesMaterial;
 
