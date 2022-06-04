@@ -13,6 +13,7 @@ export class SurfaceMaterial extends ShaderMaterial {
 		const vertex = /* glsl */`
 
 varying vec3 vViewPosition;
+varying vec3 vWorldPosition;
 
 #include <common>
 #include <uv_pars_vertex>
@@ -52,6 +53,11 @@ void main() {
 
 	vViewPosition = - mvPosition.xyz;
 
+	vec4 wPosition = vec4( transformed, 1.0 );
+	wPosition = modelMatrix * wPosition;
+
+	vWorldPosition = wPosition.xyz;
+
 	#include <worldpos_vertex>
 	#include <envmap_vertex>
 	#include <shadowmap_vertex>
@@ -65,6 +71,7 @@ void main() {
 uniforms_loc
 
 varying vec3 vViewPosition;
+varying vec3 vWorldPosition;
 
 uniform vec3 diffuse;
 uniform vec3 emissive;
@@ -92,8 +99,7 @@ uniform float opacity;
 #include <lights_pars_begin>
 #include <normal_pars_fragment>
 
-// #include <lights_physical_pars_fragment>
-
+// 
 float lerp( float a, float b, float i ) {
 	return a * ( 1.0 - i ) + b * i;
 }
@@ -109,7 +115,8 @@ struct Input {
 	vec2 uv;
 	vec2 uv2;
 
-	vec3 Pos;
+	vec3 worldPos;
+	vec3 viewPos;
 	vec3 Normal;
 	vec3 viewDir;
     vec3 lightDir;
@@ -137,7 +144,8 @@ void RE_Direct_Surface( const in IncidentLight directLight, const in GeometricCo
 #if defined( USE_LIGHTMAP ) || defined( USE_AOMAP )
 	IN.uv2 = vUv2;
 #endif
-	IN.Pos = geometry.position;
+	IN.worldPos = vWorldPosition;
+	IN.viewPos = geometry.position;
 	IN.Normal = geometry.normal;
 	IN.viewDir = geometry.viewDir;
 	IN.lightDir = directLight.direction;

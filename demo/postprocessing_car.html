@@ -39,9 +39,16 @@
 
         let app = new Application( document.body, {
             antialias: true,
+            physicallyCorrect: false
         } );
 
-        app.camera.position.set( 2, 2, 3 );
+        app.camera.position.set( 2, 1, 3 );
+
+        app.controls.target.y += 0.7;
+        app.controls.autoRotate = true;
+        app.controls.minDistance = 2;
+        app.controls.maxDistance = 5;
+        app.controls.maxPolarAngle = Math.PI / 2;
 
         let group = new THREE.Group();
         app.root.add( group );
