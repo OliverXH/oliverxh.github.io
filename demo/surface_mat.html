@@ -35,6 +35,8 @@
 
         import { LoadingScreen } from "./js/loading-screen.js";
 
+        let loadingScreen = new LoadingScreen();
+
         let app = new Application( document.body, {
             antialias: true,
             clearColor: 0xf5a356,
@@ -390,6 +392,8 @@ void surface( Input IN, inout SurfaceOutput o ) {
         ];
 
         app.assetManager.once( 'end', () => {
+
+            loadingScreen.end();
 
             let assets = app.assetManager.assets;
 

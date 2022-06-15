@@ -1,12 +1,18 @@
 
+// import 
+
 import {
     Scene,
     Group,
     Box3,
+    Sphere,
     Box3Helper,
     Raycaster,
-    Vector2
+    Vector2,
+    Vector3
 } from 'three';
+
+import { BBoxHelper } from './BBoxHelper.js';
 
 import { TransformControls } from "https://threejs.org/examples/jsm/controls/TransformControls.js";
 
@@ -20,7 +26,11 @@ import { SetScaleCommand } from './commands/SetScaleCommand.js';
 
 export class EditorPlugin extends EventEmitter {
 
-    constructor( app ) {
+    constructor( app, config ) {
+
+        app.loadScript( 'js/gsap.min.js' );
+
+        // console.log( gsap );
 
         super();
 
@@ -40,9 +50,11 @@ export class EditorPlugin extends EventEmitter {
 
         const box = new Box3();
 
-        const selectionBox = new Box3Helper( box, 0x73ff66 );
+        // const selectionBox = new Box3Helper( box, 0x73ff66 );
+        const selectionBox = new BBoxHelper( box, 0xffffff );
         selectionBox.material.depthTest = false;
         selectionBox.material.transparent = true;
+        selectionBox.material.fog = false;
         selectionBox.visible = false;
         sceneHelpers.add( selectionBox );
 
@@ -279,7 +291,57 @@ export class EditorPlugin extends EventEmitter {
 
         }
 
+        function focusOn( target ) {
+
+            let bSphere = new Sphere();
+
+            target.box.getBoundingSphere( bSphere );
+
+            let theta = app.camera.fov * 0.5;
+            theta *= Math.PI / 180;
+
+            let edge = bSphere.radius + 0.5;
+            let length = edge / Math.tan( theta );
+
+            let dir = app.camera.getWorldDirection( new Vector3() ).negate();
+            let expectPos = dir.clone().multiplyScalar( length );
+            expectPos.add( target.position );
+
+            // Reset current animations
+            gsap.killTweensOf( app.camera.position );
+            gsap.killTweensOf( controls.target );
+
+            // Position
+            gsap.to(
+                app.camera.position,
+                {
+                    x: expectPos.x,
+                    y: expectPos.y,
+                    z: expectPos.z,
+                    duration: 0.6,
+                    ease: 'power2.out'
+                }
+            )
+
+            gsap.to(
+                controls.target,
+                {
+                    x: target.position.x,
+                    y: target.position.y,
+                    z: target.position.z,
+                    duration: 0.6,
+                    ease: 'power2.out'
+                }
+            )
+
+        }
+
         function onDoubleClick( event ) {
+
+            if ( selectionBox.visible )
+                focusOn( selectionBox );
+
+            return;
 
             const array = getMousePosition( container, event.clientX, event.clientY );
             onDoubleClickPosition.fromArray( array );
@@ -288,11 +350,9 @@ export class EditorPlugin extends EventEmitter {
 
             if ( intersects.length > 0 ) {
 
-                const intersect = intersects[ 0 ];
+                // const intersect = intersects[ 0 ];
 
-                // signals.objectFocused.dispatch( intersect.object );
-                // controls.focus( intersect.object );
-                controls.target = intersect.object.position.clone();
+                focusOn( selectionBox );
 
             }
 
@@ -315,6 +375,12 @@ export class EditorPlugin extends EventEmitter {
         document.addEventListener( 'keydown', function ( event ) {
 
             switch ( event.key.toLowerCase() ) {
+
+                case 'f':
+                    if ( selectionBox.visible )
+                        focusOn( selectionBox );
+
+                    break;
 
                 case 'w':
 
