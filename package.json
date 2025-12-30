@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "description": "My Pages",
   "scripts": {
-    "dev": "parcel src/**/*.pug",
-    "build": "parcel build src/**/*.pug --no-source-maps"
+    "dev": "parcel src/index.pug",
+    "build": "parcel build src/index.pug --no-source-maps"
   },
   "repository": {
     "type": "git",
