@@ -1,0 +1,32 @@
+# 工作流的名称，显示在 GitHub Actions 标签页中
+name: Hello World Workflow
+
+# 触发工作流的事件：当代码推送到 main 分支时触发
+on:
+  push:
+    branches:
+      - main
+
+# 定义任务列表
+jobs:
+  # 任务 ID（唯一的标识符）
+  my-first-job:
+    # 指定运行环境（最新版 Ubuntu）
+    runs-on: ubuntu-latest
+    
+    # 任务包含的步骤列表
+    steps:
+      # 步骤 1：使用官方提供的 Action 检出代码
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 步骤 2：运行 shell 命令
+      - name: Run a one-line script
+        run: echo Hello, World!
+
+      # 步骤 3：运行多行脚本
+      - name: Run a multi-line script
+        run: |
+          echo 检查系统环境...
+          echo 当前用户是: $USER
+          ls -l
