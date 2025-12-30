@@ -1,11 +1,11 @@
 # 工作流的名称，显示在 GitHub Actions 标签页中
 name: Hello World Workflow
 
-# 触发工作流的事件：当代码推送到 main 分支时触发
+# 触发工作流的事件：当代码推送到 master 分支时触发
 on:
   push:
     branches:
-      - main
+      - master
 
 # 定义任务列表
 jobs:
