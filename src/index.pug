@@ -1,0 +1,89 @@
+//- 1. 在文件最顶部引入并赋值
+- var appData
+include includes/data.pug
+
+doctype html
+html(lang="zh-CN")
+  head
+    meta(charset="UTF-8")
+    meta(name="viewport", content="width=device-width, initial-scale=1.0")
+    title= siteInfo.name + " - " + siteInfo.author
+    meta(name="description", content=siteInfo.description)
+    link(rel="stylesheet", href="styles/main.scss")
+
+  body
+    // 导航栏
+    nav.navbar
+      .container
+        .logo= siteInfo.name
+        .menu-toggle#mobile-menu
+          i.ri-menu-3-line
+        ul.nav-links#nav-links
+          each link in navLinks
+            li
+              a(href=link.href)= link.title
+          li.theme-toggle#theme-switch
+            i.ri-moon-line
+
+    // Hero 区域
+    header#home.hero
+      .container
+        .hero-content(data-aos="fade-up", data-aos-duration="1000")
+          h1 你好，我是 <span class="highlight"> #{siteInfo.author} </span>
+          p= siteInfo.description
+          a.btn(href="#portfolio") 查看作品
+
+    // 关于我
+    section#about.section
+      .container
+        h2.section-title(data-aos="fade-up") 关于我
+        .about-grid
+          .about-image(data-aos="fade-right")
+            img(
+              src="./images/Avatar.jpg", 
+              alt="Avatar"
+            )
+          .about-text(data-aos="fade-left")
+            p 我不仅是代码的编写者，更是用户体验的打磨者。拥有 3 年的前端开发经验，擅长 Vue 生态与高性能 Web 动效。
+            p 我相信优秀的数字产品是逻辑与美学的完美结合。除了编码，我也热爱极简主义设计和摄影。
+
+    // 作品集 - 使用数据循环
+    section#portfolio.section
+      .container
+        h2.section-title(data-aos="fade-up") 精选作品
+        .portfolio-grid
+          each project, index in projects
+            .card(data-aos="fade-up", data-aos-delay= index * 100)
+              .card-img-placeholder
+                // 图片路径也可以放到 data 里，这里为了演示清楚写死 URL
+                img(
+                  src="https://picsum.photos/id/" + index + "/600/600", 
+                  alt=project.imgAlt
+                ).card-img
+              .card-content
+                h3= project.title
+                p= project.desc
+
+    // 技能 - 使用数据循环
+    section#skills.section
+      .container
+        h2.section-title(data-aos="zoom-in") 技能栈
+        .skills-wrapper(data-aos="fade-up", data-aos-delay="200")
+          each skill in skills
+            .skill-tag
+              i(class=skill.icon)
+              span= skill.name
+
+    // 页脚 - 使用社交链接数据
+    footer.footer
+      .container
+        .socials
+          each social in socialLinks
+            a(href=social.url, target="_blank", rel="noopener noreferrer")
+              i(class=social.icon)
+        p 
+          | &copy; 2025 #{siteInfo.name}. Design & Code with 
+          i.ri-heart-fill(style="color:#ef4444")
+          | .
+
+    script(type="module", src="scripts/main.js")

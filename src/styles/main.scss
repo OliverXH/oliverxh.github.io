@@ -1,0 +1,433 @@
+// --- 1. 引入外部库 ---
+@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=Poppins:wght@400;600;700&display=swap");
+@import "../../node_modules/remixicon/fonts/remixicon.css";
+@import "../../node_modules/aos/dist/aos.css";
+
+// --- 2. CSS 变量 (主题系统) ---
+:root {
+    --primary-color: #6366f1;
+    --secondary-color: #a855f7;
+    --bg-color: #f8fafc;
+    --text-color: #1e293b;
+    --text-secondary: #64748b;
+    --card-bg: #ffffff;
+    --nav-bg: rgba(255, 255, 255, 0.85);
+    --border-color: #e2e8f0;
+    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+// 暗黑模式变量
+[data-theme="dark"] {
+    --bg-color: #0f172a;
+    --text-color: #f1f5f9;
+    --text-secondary: #94a3b8;
+    --card-bg: #1e293b;
+    --nav-bg: rgba(15, 23, 42, 0.85);
+    --border-color: #334155;
+}
+
+// --- 3. 全局重置与基础样式 ---
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: "Poppins", "Noto Sans SC", sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    line-height: 1.6;
+    transition:
+        background-color 0.3s,
+        color 0.3s;
+    overflow-x: hidden;
+}
+
+.container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 24px;
+}
+
+// --- 4. 组件样式 ---
+
+// 导航栏 (支持移动端)
+.navbar {
+    background: var(--nav-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--border-color);
+    transition: var(--transition);
+
+    .container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .logo {
+        font-weight: 700;
+        font-size: 1.5rem;
+        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        cursor: pointer;
+    }
+
+    // 移动端菜单开关默认隐藏
+    .menu-toggle {
+        display: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+        color: var(--text-color);
+    }
+
+    .nav-links {
+        list-style: none;
+        display: flex;
+        gap: 32px;
+        align-items: center;
+
+        a {
+            text-decoration: none;
+            color: var(--text-color);
+            font-weight: 500;
+            font-size: 0.95rem;
+            transition: var(--transition);
+            position: relative;
+
+            &::after {
+                content: "";
+                position: absolute;
+                width: 0;
+                height: 2px;
+                bottom: -4px;
+                left: 0;
+                background: var(--primary-color);
+                transition: var(--transition);
+            }
+
+            &:hover {
+                color: var(--primary-color);
+                &::after {
+                    width: 100%;
+                }
+            }
+        }
+
+        // 暗黑模式切换按钮
+        .theme-toggle {
+            cursor: pointer;
+            font-size: 1.2rem;
+            padding: 8px;
+            border-radius: 50%;
+            &:hover {
+                background: rgba(128, 128, 128, 0.1);
+            }
+        }
+    }
+}
+
+// Hero 区域
+.hero {
+    min-height: 90vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    background: radial-gradient(circle at top right, rgba(99, 102, 241, 0.1), transparent 40%),
+        radial-gradient(circle at bottom left, rgba(168, 85, 247, 0.1), transparent 40%);
+    padding-top: 60px;
+
+    h1 {
+        font-size: 3.5rem;
+        margin-bottom: 1rem;
+        line-height: 1.2;
+        letter-spacing: -1px;
+
+        .highlight {
+            color: var(--primary-color);
+            position: relative;
+            display: inline-block;
+        }
+    }
+
+    p {
+        font-size: 1.25rem;
+        color: var(--text-secondary);
+        margin-bottom: 2.5rem;
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .btn {
+        display: inline-block;
+        padding: 14px 40px;
+        background: var(--primary-color);
+        color: white;
+        text-decoration: none;
+        border-radius: 50px;
+        font-weight: 600;
+        transition: var(--transition);
+        box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
+        border: none;
+        cursor: pointer;
+
+        &:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.5);
+            // 修复点：使用 filter brightness 代替 darken
+            filter: brightness(0.9);
+        }
+    }
+}
+
+// 通用区块
+.section {
+    padding: 100px 0;
+
+    .section-title {
+        text-align: center;
+        font-size: 2.25rem;
+        margin-bottom: 4rem;
+        font-weight: 700;
+
+        &::after {
+            content: "";
+            display: block;
+            width: 60px;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+            margin: 16px auto 0;
+            border-radius: 2px;
+        }
+    }
+}
+
+// 关于我
+.about-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 60px;
+    align-items: center;
+
+    .about-text {
+        p {
+            margin-bottom: 1.5rem;
+            color: var(--text-secondary);
+            font-size: 1.05rem;
+        }
+    }
+
+    .about-image {
+        position: relative;
+
+        img {
+            width: 100%;
+            border-radius: 24px;
+            box-shadow: 20px 20px 0 var(--primary-color);
+            transition: transform 0.3s;
+
+            &:hover {
+                transform: scale(1.02);
+            }
+        }
+    }
+}
+
+// 作品集 (卡片)
+.portfolio-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 32px;
+
+    .card {
+        background: var(--card-bg);
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        transition: var(--transition);
+        border: 1px solid var(--border-color);
+
+        &:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .card-img-placeholder {
+            height: 220px;
+            width: 100%;
+            background: #e2e8f0;
+            background-image: linear-gradient(120deg, #fdfbfb 0%, #ebedee 100%);
+
+            // 确保图片填充容器
+            img.card-img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+            }
+        }
+
+        .card-content {
+            padding: 24px;
+
+            h3 {
+                margin-bottom: 8px;
+                font-size: 1.25rem;
+            }
+            p {
+                color: var(--text-secondary);
+                font-size: 0.9rem;
+            }
+        }
+    }
+}
+
+// 技能标签
+.skills-wrapper {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 16px;
+
+    .skill-tag {
+        padding: 12px 24px;
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        font-weight: 600;
+        color: var(--text-color);
+        transition: var(--transition);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        &:hover {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+            background: rgba(99, 102, 241, 0.05);
+        }
+    }
+}
+
+// 页脚
+.footer {
+    text-align: center;
+    padding: 60px 0;
+    background: var(--card-bg);
+    margin-top: 60px;
+    border-top: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+
+    .socials {
+        margin-bottom: 20px;
+
+        a {
+            color: var(--text-secondary);
+            font-size: 1.5rem;
+            margin: 0 10px;
+            transition: var(--transition);
+
+            &:hover {
+                color: var(--primary-color);
+                transform: scale(1.1);
+            }
+        }
+    }
+}
+
+// --- 5. 响应式适配 ---
+@media (max-width: 768px) {
+    .hero h1 {
+        font-size: 2.5rem;
+    }
+    .about-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .menu-toggle {
+        display: block;
+    }
+
+    .nav-links {
+        position: fixed;
+        top: 70px;
+        left: 0;
+        width: 100%;
+        background: var(--card-bg);
+        flex-direction: column;
+        padding: 2rem;
+        gap: 20px;
+        border-bottom: 1px solid var(--border-color);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
+
+        // 移动端默认隐藏状态
+        transform: translateY(-150%);
+        opacity: 0;
+        pointer-events: none;
+        transition:
+            transform 0.4s ease,
+            opacity 0.4s ease;
+
+        &.active {
+            transform: translateY(0);
+            opacity: 1;
+            pointer-events: auto;
+        }
+    }
+}
+
+// 其他
+
+// 全局平滑滚动
+html {
+    scroll-behavior: smooth;
+}
+
+// 自定义滚动条
+::-webkit-scrollbar {
+    width: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-color);
+}
+
+::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 5px;
+
+    &:hover {
+        background: #94a3b8;
+    }
+}
+
+// 暗黑模式下的滚动条
+[data-theme="dark"] ::-webkit-scrollbar-track {
+    background: #0f172a;
+}
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+    background: #334155;
+    &:hover {
+        background: #475569;
+    }
+}
+
+// 文本选取颜色定制
+::selection {
+    background: var(--primary-color);
+    color: #fff;
+}
+
+.btn {
+    &:active {
+        transform: scale(0.96);
+    }
+}

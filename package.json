@@ -1,0 +1,30 @@
+{
+  "name": "oliverxh.github.io",
+  "version": "1.0.0",
+  "description": "My Pages",
+  "scripts": {
+    "start": "parcel src/index.pug",
+    "build": "parcel build src/index.pug --public-url ./ --no-source-maps"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/OliverXH/oliverxh.github.io.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/OliverXH/oliverxh.github.io/issues"
+  },
+  "homepage": "https://github.com/OliverXH/oliverxh.github.io#readme",
+  "devDependencies": {
+    "@parcel/transformer-pug": "^2.16.3",
+    "@parcel/transformer-sass": "^2.16.3",
+    "parcel": "^2.16.3",
+    "pug": "^3.0.3"
+  },
+  "dependencies": {
+    "aos": "^2.3.4",
+    "remixicon": "^4.7.0"
+  }
+}
