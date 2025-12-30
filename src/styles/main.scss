@@ -247,6 +247,16 @@ body {
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     gap: 32px;
 
+    .project-link {
+        text-decoration: none; // 去除下划线
+        color: inherit; // 继承父元素颜色，不变成蓝色
+
+        // 展开时也保持无下划线
+        &:hover {
+            text-decoration: none;
+        }
+    }
+
     .card {
         background: var(--card-bg);
         border-radius: 20px;

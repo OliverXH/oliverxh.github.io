@@ -53,16 +53,17 @@ html(lang="zh-CN")
         h2.section-title(data-aos="fade-up") 精选作品
         .portfolio-grid
           each project, index in projects
-            .card(data-aos="fade-up", data-aos-delay= index * 100)
-              .card-img-placeholder
-                // 图片路径也可以放到 data 里，这里为了演示清楚写死 URL
-                img(
-                  src="https://picsum.photos/id/" + index + "/600/600", 
-                  alt=project.imgAlt
-                ).card-img
-              .card-content
-                h3= project.title
-                p= project.desc
+            a.project-link(href=project.url ? project.url : "#", target= project.url ? "_blank" : "_self", rel= project.url ? "noopener noreferrer" : "", data-aos="fade-up", data-aos-delay= index * 100)
+              .card
+                .card-img-placeholder
+                  // 图片路径也可以放到 data 里，这里为了演示清楚写死 URL
+                  img(
+                    src="https://picsum.photos/id/" + index + "/600/600", 
+                    alt=project.imgAlt
+                  ).card-img
+                .card-content
+                  h3= project.title
+                  p= project.desc
 
     // 技能 - 使用数据循环
     section#skills.section
