@@ -24,7 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [18.x] # 使用合适的 Node.js 版本
+        node-version: [24.x] # 使用合适的 Node.js 版本
 
     steps:
       - name: Checkout
