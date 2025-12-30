@@ -4,7 +4,7 @@
   "description": "My Pages",
   "scripts": {
     "dev": "parcel src/**/*.pug",
-    "build": "parcel build src/**/*.pug --public-url ./ --no-source-maps"
+    "build": "parcel build src/**/*.pug --no-source-maps"
   },
   "repository": {
     "type": "git",
